@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -49,8 +50,7 @@ var RowRenderer = (function () {
         this.destroyFunctions = [];
     }
     RowRenderer.prototype.agWire = function (loggerFactory) {
-        this.logger = this.loggerFactory.create('RowRenderer');
-        this.logger = loggerFactory.create('BalancedColumnTreeBuilder');
+        this.logger = loggerFactory.create('RowRenderer');
     };
     RowRenderer.prototype.setupDocumentFragments = function () {
         var usingDocumentFragments = !!document.createDocumentFragment;
@@ -66,23 +66,15 @@ var RowRenderer = (function () {
         var _this = this;
         this.getContainersFromGridPanel();
         this.setupDocumentFragments();
-        var columnListener = this.onColumnEvent.bind(this);
         var modelUpdatedListener = this.onModelUpdated.bind(this);
         var floatingRowDataChangedListener = this.onFloatingRowDataChanged.bind(this);
-        this.eventService.addEventListener(events_1.Events.EVENT_DISPLAYED_COLUMNS_CHANGED, columnListener);
-        this.eventService.addEventListener(events_1.Events.EVENT_COLUMN_RESIZED, columnListener);
         this.eventService.addEventListener(events_1.Events.EVENT_MODEL_UPDATED, modelUpdatedListener);
         this.eventService.addEventListener(events_1.Events.EVENT_FLOATING_ROW_DATA_CHANGED, floatingRowDataChangedListener);
         this.destroyFunctions.push(function () {
-            _this.eventService.removeEventListener(events_1.Events.EVENT_DISPLAYED_COLUMNS_CHANGED, columnListener);
-            _this.eventService.removeEventListener(events_1.Events.EVENT_COLUMN_RESIZED, columnListener);
             _this.eventService.removeEventListener(events_1.Events.EVENT_MODEL_UPDATED, modelUpdatedListener);
             _this.eventService.removeEventListener(events_1.Events.EVENT_FLOATING_ROW_DATA_CHANGED, floatingRowDataChangedListener);
         });
         this.refreshView();
-    };
-    RowRenderer.prototype.onColumnEvent = function (event) {
-        this.setMainRowWidths();
     };
     RowRenderer.prototype.getContainersFromGridPanel = function () {
         this.eFullWidthContainer = this.gridPanel.getFullWidthCellContainer();
@@ -98,19 +90,6 @@ var RowRenderer = (function () {
         this.eFloatingBottomPinnedRightContainer = this.gridPanel.getPinnedRightFloatingBottom();
         this.eFloatingBottomFullWithContainer = this.gridPanel.getFloatingBottomFullWidthCellContainer();
         this.eBodyViewport = this.gridPanel.getBodyViewport();
-        this.eAllBodyContainers = [this.eBodyContainer, this.eFloatingBottomContainer,
-            this.eFloatingTopContainer];
-        this.eAllPinnedLeftContainers = [
-            this.ePinnedLeftColsContainer,
-            this.eFloatingBottomPinnedLeftContainer,
-            this.eFloatingTopPinnedLeftContainer];
-        this.eAllPinnedRightContainers = [
-            this.ePinnedRightColsContainer,
-            this.eFloatingBottomPinnedRightContainer,
-            this.eFloatingTopPinnedRightContainer];
-    };
-    RowRenderer.prototype.setRowModel = function (rowModel) {
-        this.rowModel = rowModel;
     };
     RowRenderer.prototype.getAllCellsForColumn = function (column) {
         var eCells = [];
@@ -124,15 +103,6 @@ var RowRenderer = (function () {
             }
         }
         return eCells;
-    };
-    RowRenderer.prototype.setMainRowWidths = function () {
-        var mainRowWidth = this.columnController.getBodyContainerWidth() + "px";
-        this.eAllBodyContainers.forEach(function (container) {
-            var unpinnedRows = container.querySelectorAll(".ag-row");
-            for (var i = 0; i < unpinnedRows.length; i++) {
-                unpinnedRows[i].style.width = mainRowWidth;
-            }
-        });
     };
     RowRenderer.prototype.refreshAllFloatingRows = function () {
         this.refreshFloatingRows(this.renderedTopFloatingRows, this.floatingRowModel.getFloatingTopRowData(), this.eFloatingTopPinnedLeftContainer, this.eFloatingTopPinnedRightContainer, this.eFloatingTopContainer, this.eFloatingTopFullWidthContainer);
@@ -728,5 +698,5 @@ var RowRenderer = (function () {
         __metadata('design:paramtypes', [])
     ], RowRenderer);
     return RowRenderer;
-})();
+}());
 exports.RowRenderer = RowRenderer;

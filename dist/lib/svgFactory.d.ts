@@ -14,6 +14,7 @@ export declare class SvgFactory {
     createArrowDownSvg(): HTMLElement;
     createArrowRightSvg(): HTMLElement;
     createSmallArrowRightSvg(): HTMLElement;
+    createSmallArrowLeftSvg(): HTMLElement;
     createSmallArrowDownSvg(): HTMLElement;
     createArrowUpDownSvg(): HTMLElement;
     private static getFromCacheOrCreate(key, data);

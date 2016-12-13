@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var utils_1 = require("../utils");
 var gridRow_1 = require("./gridRow");
 var GridCell = (function () {
@@ -22,5 +23,5 @@ var GridCell = (function () {
         return this.rowIndex + "." + this.floating + "." + this.column.getId();
     };
     return GridCell;
-})();
+}());
 exports.GridCell = GridCell;

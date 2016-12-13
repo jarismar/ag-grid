@@ -30,5 +30,5 @@ export declare class BaseFrameworkFactory implements IFrameworkFactory {
     gridOptionsGroupRowInnerRenderer(gridOptions: GridOptions): {
         new (): ICellRenderer;
     } | ICellRendererFunc | string;
-    setTimeout(handler: any, timeout?: any): number;
+    setTimeout(action: any, timeout?: any): void;
 }

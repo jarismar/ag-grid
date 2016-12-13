@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var componentUtil_1 = require("./componentUtil");
 var grid_1 = require("../grid");
 var registered = false;

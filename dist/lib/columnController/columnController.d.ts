@@ -123,15 +123,18 @@ export declare class ColumnController {
     private ready;
     private logger;
     private pivotMode;
-    private totalWidth;
+    private scrollWidth;
     private scrollPosition;
+    private bodyWidth;
+    private leftWidth;
+    private rightWidth;
     private viewportLeft;
     private viewportRight;
     init(): void;
-    private setViewportLeftAndRight();
+    private setVirtualViewportLeftAndRight();
     getDisplayedColumnsStartingAt(column: Column): Column[];
-    private checkDisplayedCenterColumns();
-    setWidthAndScrollPosition(totalWidth: number, scrollPosition: number): void;
+    private checkDisplayedVirtualColumns();
+    setVirtualViewportPosition(scrollWidth: number, scrollPosition: number): void;
     isPivotMode(): boolean;
     setPivotMode(pivotMode: boolean): void;
     getSecondaryPivotColumn(pivotKeys: string[], valueColKey: Column | ColDef | String): Column;
@@ -182,6 +185,8 @@ export declare class ColumnController {
     moveColumn(key: string | Column | ColDef, toIndex: number): void;
     moveColumnByIndex(fromIndex: number, toIndex: number): void;
     getBodyContainerWidth(): number;
+    getContainerWidth(pinned: string): number;
+    private updateBodyWidths();
     getValueColumns(): Column[];
     getPivotColumns(): Column[];
     isPivotActive(): boolean;
@@ -199,7 +204,7 @@ export declare class ColumnController {
     setColumnPinned(key: Column | ColDef | String, pinned: string | boolean): void;
     setColumnsPinned(keys: (Column | ColDef | String)[], pinned: string | boolean): void;
     private actionOnGridColumns(keys, action, createEvent);
-    getDisplayedColBefore(col: any): Column;
+    getDisplayedColBefore(col: Column): Column;
     getDisplayedColAfter(col: Column): Column;
     isPinningLeft(): boolean;
     isPinningRight(): boolean;
@@ -240,6 +245,7 @@ export declare class ColumnController {
     private clearDisplayedColumns();
     private updateGroupsAndDisplayedColumns();
     private updateDisplayedColumnsFromTrees();
+    private setupAllDisplayedColumns();
     private setLeftValues();
     private setLeftValuesOfColumns();
     private setLeftValuesOfGroups();

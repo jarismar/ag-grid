@@ -12,6 +12,7 @@ export declare class Utils {
     private static isSafari;
     private static isIE;
     private static isEdge;
+    private static isChrome;
     static areEventsNear(e1: MouseEvent | Touch, e2: MouseEvent | Touch, pixelCount: number): boolean;
     static shallowCompare(arr1: any[], arr2: any[]): boolean;
     static getNameOfClass(TheClass: any): string;
@@ -19,6 +20,7 @@ export declare class Utils {
         [key: string]: T;
     }): T[];
     static getValueUsingField(data: any, field: string, fieldContainsDots: boolean): any;
+    static getScrollLeft(element: HTMLElement, rtl: boolean): number;
     static iterateObject(object: any, callback: (key: string, value: any) => void): void;
     static cloneObject<T>(object: T): T;
     static map<TItem, TResult>(array: TItem[], callback: (item: TItem) => TResult): TResult[];
@@ -60,6 +62,7 @@ export declare class Utils {
     static removeCssClass(element: HTMLElement, className: string): void;
     static removeRepeatsFromArray<T>(array: T[], object: T): void;
     static removeFromArray<T>(array: T[], object: T): void;
+    static removeAllFromArray<T>(array: T[], toRemove: T[]): void;
     static insertIntoArray<T>(array: T[], object: T, toIndex: number): void;
     static insertArrayIntoArray<T>(dest: T[], src: T[], toIndex: number): void;
     static moveInArray<T>(array: T[], objectsToMove: T[], toIndex: number): void;
@@ -83,6 +86,7 @@ export declare class Utils {
     static isBrowserIE(): boolean;
     static isBrowserEdge(): boolean;
     static isBrowserSafari(): boolean;
+    static isBrowserChrome(): boolean;
     static getTarget(event: Event): Element;
     static getBodyWidth(): number;
     static getBodyHeight(): number;

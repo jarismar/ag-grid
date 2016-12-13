@@ -15,6 +15,7 @@ export declare class AgCheckbox extends Component {
     private passive;
     constructor();
     private init();
+    attributesSet(): void;
     private loadIcons();
     private onClick();
     getNextValue(): boolean;

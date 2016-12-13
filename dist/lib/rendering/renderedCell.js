@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -516,6 +517,7 @@ var RenderedCell = (function (_super) {
         if (cellEditor.afterGuiAttached) {
             cellEditor.afterGuiAttached();
         }
+        this.eventService.dispatchEvent(events_1.Events.EVENT_CELL_EDITING_STARTED, this.createParams());
         return true;
     };
     RenderedCell.prototype.addInCellEditor = function () {
@@ -604,6 +606,7 @@ var RenderedCell = (function (_super) {
         }
         this.setInlineEditingClass();
         this.refreshCell();
+        this.eventService.dispatchEvent(events_1.Events.EVENT_CELL_EDITING_STOPPED, this.createParams());
     };
     RenderedCell.prototype.createParams = function () {
         var params = {
@@ -611,6 +614,7 @@ var RenderedCell = (function (_super) {
             data: this.node.data,
             value: this.value,
             rowIndex: this.gridCell.rowIndex,
+            column: this.column,
             colDef: this.column.getColDef(),
             $scope: this.scope,
             context: this.gridOptionsWrapper.getContext(),
@@ -679,7 +683,9 @@ var RenderedCell = (function (_super) {
         if (typeof colDef.onCellDoubleClicked === 'function') {
             colDef.onCellDoubleClicked(agEvent);
         }
-        if (!this.gridOptionsWrapper.isSingleClickEdit()) {
+        var editOnDoubleClick = !this.gridOptionsWrapper.isSingleClickEdit()
+            && !this.gridOptionsWrapper.isSuppressClickEdit();
+        if (editOnDoubleClick) {
             this.startRowOrCellEdit();
         }
     };
@@ -709,7 +715,9 @@ var RenderedCell = (function (_super) {
         if (colDef.onCellClicked) {
             colDef.onCellClicked(agEvent);
         }
-        if (this.gridOptionsWrapper.isSingleClickEdit()) {
+        var editOnSingleClick = this.gridOptionsWrapper.isSingleClickEdit()
+            && !this.gridOptionsWrapper.isSuppressClickEdit();
+        if (editOnSingleClick) {
             this.startRowOrCellEdit();
         }
         this.doIeFocusHack();
@@ -839,11 +847,11 @@ var RenderedCell = (function (_super) {
             var cbSelectionComponent = new checkboxSelectionComponent_1.CheckboxSelectionComponent();
             this.context.wireBean(cbSelectionComponent);
             cbSelectionComponent.init({ rowNode: this.node });
-            this.eCellWrapper.appendChild(cbSelectionComponent.getGui());
             this.addDestroyFunc(function () { return cbSelectionComponent.destroy(); });
             // eventually we call eSpanWithValue.innerHTML = xxx, so cannot include the checkbox (above) in this span
             this.eSpanWithValue = document.createElement('span');
             utils_1.Utils.addCssClass(this.eSpanWithValue, 'ag-cell-value');
+            this.eCellWrapper.appendChild(cbSelectionComponent.getGui());
             this.eCellWrapper.appendChild(this.eSpanWithValue);
             this.eParentOfValue = this.eSpanWithValue;
         }
@@ -1090,5 +1098,5 @@ var RenderedCell = (function (_super) {
         __metadata('design:returntype', void 0)
     ], RenderedCell.prototype, "init", null);
     return RenderedCell;
-})(component_1.Component);
+}(component_1.Component));
 exports.RenderedCell = RenderedCell;

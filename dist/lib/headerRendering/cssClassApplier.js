@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var utils_1 = require('../utils');
 var CssClassApplier = (function () {
     function CssClassApplier() {
@@ -52,5 +53,5 @@ var CssClassApplier = (function () {
         }
     };
     return CssClassApplier;
-})();
+}());
 exports.CssClassApplier = CssClassApplier;

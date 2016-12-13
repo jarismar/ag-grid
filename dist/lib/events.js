@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var Events = (function () {
     function Events() {
     }
@@ -68,9 +69,15 @@ var Events = (function () {
     Events.EVENT_VIEWPORT_CHANGED = 'viewportChanged';
     Events.EVENT_DRAG_STARTED = 'dragStarted';
     Events.EVENT_DRAG_STOPPED = 'dragStopped';
+    Events.EVENT_ROW_EDITING_STARTED = 'rowEditingStarted';
+    Events.EVENT_ROW_EDITING_STOPPED = 'rowEditingStopped';
+    Events.EVENT_CELL_EDITING_STARTED = 'cellEditingStarted';
+    Events.EVENT_CELL_EDITING_STOPPED = 'cellEditingStopped';
     Events.EVENT_ITEMS_ADDED = 'itemsAdded';
     Events.EVENT_ITEMS_REMOVED = 'itemsRemoved';
     Events.EVENT_BODY_SCROLL = 'bodyScroll';
+    // not documented, as it's experimental, don't want people with dependencies on this
+    Events.EVENT_DISPLAYED_COLUMNS_WIDTH_CHANGED = 'displayedColumnsWidthChanged';
     return Events;
-})();
+}());
 exports.Events = Events;

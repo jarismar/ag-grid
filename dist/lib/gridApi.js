@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -562,7 +563,7 @@ var GridApi = (function () {
         }
     };
     GridApi.prototype.checkGridSize = function () {
-        this.gridPanel.sizeHeaderAndBody();
+        this.gridPanel.setBodyAndHeaderHeights();
     };
     __decorate([
         context_1.Autowired('csvCreator'), 
@@ -671,5 +672,5 @@ var GridApi = (function () {
         __metadata('design:paramtypes', [])
     ], GridApi);
     return GridApi;
-})();
+}());
 exports.GridApi = GridApi;

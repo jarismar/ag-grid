@@ -32,6 +32,7 @@ export declare class GridCore {
     private destroyFunctions;
     constructor(loggerFactory: LoggerFactory);
     init(): void;
+    private addRtlSupport();
     private createNorthPanel();
     private onDropPanelVisible();
     getRootGui(): HTMLElement;

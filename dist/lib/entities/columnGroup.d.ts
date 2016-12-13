@@ -6,10 +6,12 @@ import { ColGroupDef } from "./colDef";
 import { Column } from "./column";
 import { AbstractColDef } from "./colDef";
 import { OriginalColumnGroup } from "./originalColumnGroup";
+import { GridOptionsWrapper } from "../gridOptionsWrapper";
 export declare class ColumnGroup implements ColumnGroupChild {
     static HEADER_GROUP_SHOW_OPEN: string;
     static HEADER_GROUP_SHOW_CLOSED: string;
     static EVENT_LEFT_CHANGED: string;
+    gridOptionsWrapper: GridOptionsWrapper;
     private children;
     private displayedChildren;
     private groupId;

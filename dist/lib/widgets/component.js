@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var utils_1 = require('../utils');
 var eventService_1 = require("../eventService");
 var gridOptionsWrapper_1 = require("../gridOptionsWrapper");
@@ -57,6 +58,8 @@ var Component = (function () {
         this.eGui.__agComponent = this;
         this.addAnnotatedEventListeners();
         this.wireQuerySelectors();
+    };
+    Component.prototype.attributesSet = function () {
     };
     Component.prototype.wireQuerySelectors = function () {
         var _this = this;
@@ -218,5 +221,5 @@ var Component = (function () {
     };
     Component.EVENT_VISIBLE_CHANGED = 'visibleChanged';
     return Component;
-})();
+}());
 exports.Component = Component;

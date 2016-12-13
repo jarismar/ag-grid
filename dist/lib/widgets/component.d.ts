@@ -18,6 +18,7 @@ export declare class Component implements IEventEmitter {
     private swapComponentForNode(newComponent, parentNode, childNode);
     private swapInComponentForQuerySelectors(newComponent, childNode);
     setTemplate(template: string): void;
+    attributesSet(): void;
     private wireQuerySelectors();
     private addAnnotatedEventListeners();
     private removeAnnotatedEventListeners();

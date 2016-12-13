@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -185,7 +186,6 @@ var RenderedRow = (function () {
             renderedCell.stopEditing(cancel);
         });
         if (this.editingRow) {
-            this.setEditingRow(false);
             if (!cancel) {
                 var event = {
                     node: this.rowNode,
@@ -195,6 +195,7 @@ var RenderedRow = (function () {
                 };
                 this.mainEventService.dispatchEvent(events_1.Events.EVENT_ROW_VALUE_CHANGED, event);
             }
+            this.setEditingRow(false);
         }
     };
     RenderedRow.prototype.startRowEditing = function (keyPress, charPress, sourceRenderedCell) {
@@ -219,6 +220,8 @@ var RenderedRow = (function () {
     RenderedRow.prototype.setEditingRow = function (value) {
         this.editingRow = value;
         this.eAllRowContainers.forEach(function (row) { return utils_1.Utils.addOrRemoveCssClass(row, 'ag-row-editing', value); });
+        var event = value ? events_1.Events.EVENT_ROW_EDITING_STARTED : events_1.Events.EVENT_ROW_EDITING_STOPPED;
+        this.mainEventService.dispatchEvent(event, { node: this.rowNode });
     };
     // because data can change, especially in virtual pagination and viewport row models, need to allow setting
     // styles and classes after the data has changed
@@ -938,5 +941,5 @@ var RenderedRow = (function () {
         __metadata('design:returntype', void 0)
     ], RenderedRow.prototype, "init", null);
     return RenderedRow;
-})();
+}());
 exports.RenderedRow = RenderedRow;

@@ -63,9 +63,14 @@ export declare class Events {
     static EVENT_VIEWPORT_CHANGED: string;
     static EVENT_DRAG_STARTED: string;
     static EVENT_DRAG_STOPPED: string;
+    static EVENT_ROW_EDITING_STARTED: string;
+    static EVENT_ROW_EDITING_STOPPED: string;
+    static EVENT_CELL_EDITING_STARTED: string;
+    static EVENT_CELL_EDITING_STOPPED: string;
     static EVENT_ITEMS_ADDED: string;
     static EVENT_ITEMS_REMOVED: string;
     static EVENT_BODY_SCROLL: string;
+    static EVENT_DISPLAYED_COLUMNS_WIDTH_CHANGED: string;
 }
 export interface ModelUpdatedEvent {
     /** If true, the grid will try and animate the rows to the new positions */

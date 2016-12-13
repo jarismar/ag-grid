@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var rowNode_1 = require("../../entities/rowNode");
 var utils_1 = require("../../utils");
 var InMemoryNodeManager = (function () {
@@ -166,5 +167,5 @@ var InMemoryNodeManager = (function () {
     };
     InMemoryNodeManager.TOP_LEVEL = 0;
     return InMemoryNodeManager;
-})();
+}());
 exports.InMemoryNodeManager = InMemoryNodeManager;

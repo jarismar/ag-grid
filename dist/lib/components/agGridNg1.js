@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var grid_1 = require("../grid");
 function initialiseAgGridWithAngular1(angular) {
     var angularModule = angular.module("agGrid", []);

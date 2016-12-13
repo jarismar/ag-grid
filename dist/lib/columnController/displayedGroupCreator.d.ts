@@ -7,6 +7,7 @@ import { GroupInstanceIdCreator } from "./groupInstanceIdCreator";
 import { ColumnGroupChild } from "../entities/columnGroupChild";
 export declare class DisplayedGroupCreator {
     private columnUtils;
+    private context;
     createDisplayedGroups(sortedVisibleColumns: Column[], balancedColumnTree: OriginalColumnGroupChild[], groupInstanceIdCreator: GroupInstanceIdCreator): ColumnGroupChild[];
     private setupParentsIntoColumns(columnsOrGroups, parent);
     private createFakePath(balancedColumnTree);

@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var columnGroup_1 = require("./columnGroup");
 var column_1 = require("./column");
 var OriginalColumnGroup = (function () {
@@ -96,5 +97,5 @@ var OriginalColumnGroup = (function () {
         this.expandable = atLeastOneShowingWhenOpen && atLeastOneShowingWhenClosed && atLeastOneChangeable;
     };
     return OriginalColumnGroup;
-})();
+}());
 exports.OriginalColumnGroup = OriginalColumnGroup;

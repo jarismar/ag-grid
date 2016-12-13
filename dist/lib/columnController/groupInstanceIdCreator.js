@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 // class returns unique instance id's for columns.
 // eg, the following calls (in this order) will result in:
 //
@@ -33,5 +34,5 @@ var GroupInstanceIdCreator = (function () {
         return result;
     };
     return GroupInstanceIdCreator;
-})();
+}());
 exports.GroupInstanceIdCreator = GroupInstanceIdCreator;

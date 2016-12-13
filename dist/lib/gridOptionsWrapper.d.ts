@@ -82,7 +82,6 @@ export declare class GridOptionsWrapper {
     getRowStyleFunc(): Function;
     getRowClassFunc(): Function;
     getDoesDataFlowerFunc(): (data: any) => boolean;
-    getScrollbarWidth(): number;
     getIsFullWidthCellFunc(): (rowNode: RowNode) => boolean;
     getFullWidthCellRendererParams(): any;
     getBusinessKeyForNodeFunc(): (node: RowNode) => string;
@@ -91,6 +90,7 @@ export declare class GridOptionsWrapper {
     getColumnApi(): ColumnApi;
     isEnableColResize(): boolean;
     isSingleClickEdit(): boolean;
+    isSuppressClickEdit(): boolean;
     getGroupDefaultExpanded(): number;
     getAutoSizePadding(): number;
     getMaxConcurrentDatasourceRequests(): number;
@@ -100,7 +100,7 @@ export declare class GridOptionsWrapper {
     getPaginationInitialRowCount(): number;
     getRowData(): any[];
     isGroupUseEntireRow(): boolean;
-    isEnableRtlSupport(): boolean;
+    isEnableRtl(): boolean;
     getGroupColumnDef(): ColDef;
     isGroupSuppressRow(): boolean;
     getRowGroupPanelShow(): string;
@@ -109,7 +109,7 @@ export declare class GridOptionsWrapper {
     isAngularCompileFilters(): boolean;
     isAngularCompileHeaders(): boolean;
     isDebug(): boolean;
-    getColumnDefs(): (ColDef | ColGroupDef)[];
+    getColumnDefs(): (ColGroupDef | ColDef)[];
     getDatasource(): IDatasource;
     getViewportDatasource(): IViewportDatasource;
     isEnableSorting(): boolean;
@@ -175,9 +175,11 @@ export declare class GridOptionsWrapper {
     getMaxColWidth(): number;
     getColWidth(): number;
     getRowBuffer(): number;
+    getScrollbarWidth(): number;
     private checkForDeprecated();
     getLocaleTextFunc(): Function;
     globalEventHandler(eventName: string, event?: any): void;
     getRowHeightAsNumber(): number;
     getRowHeightForNode(rowNode: RowNode): number;
+    private isNumeric(value);
 }

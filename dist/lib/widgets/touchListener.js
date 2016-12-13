@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var eventService_1 = require("../eventService");
 var utils_1 = require("../utils");
 var TouchListener = (function () {
@@ -87,5 +88,5 @@ var TouchListener = (function () {
     TouchListener.EVENT_TAP = 'tap';
     TouchListener.EVENT_LONG_TAP = 'longTap';
     return TouchListener;
-})();
+}());
 exports.TouchListener = TouchListener;

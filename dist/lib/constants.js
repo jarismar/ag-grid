@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var Constants = (function () {
     function Constants() {
     }
@@ -40,5 +41,5 @@ var Constants = (function () {
     Constants.FLOATING_TOP = 'top';
     Constants.FLOATING_BOTTOM = 'bottom';
     return Constants;
-})();
+}());
 exports.Constants = Constants;

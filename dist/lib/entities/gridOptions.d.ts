@@ -29,7 +29,7 @@ export interface GridOptions {
     suppressHorizontalScroll?: boolean;
     unSortIcon?: boolean;
     rowBuffer?: number;
-    enableRtlSupport?: boolean;
+    enableRtl?: boolean;
     enableColResize?: boolean;
     enableCellExpressions?: boolean;
     enableSorting?: boolean;
@@ -44,6 +44,7 @@ export interface GridOptions {
     maxColWidth?: number;
     suppressMenuHide?: boolean;
     singleClickEdit?: boolean;
+    suppressClickEdit?: boolean;
     debug?: boolean;
     icons?: any;
     angularCompileRows?: boolean;
@@ -213,6 +214,10 @@ export interface GridOptions {
     onCellContextMenu?(event?: any): void;
     onCellValueChanged?(event?: any): void;
     onRowValueChanged?(event?: any): void;
+    onRowEditingStarted?(event?: any): void;
+    onRowEditingStopped?(event?: any): void;
+    onCellEditingStarted?(event?: any): void;
+    onCellEditingStopped?(event?: any): void;
     onCellFocused?(event?: any): void;
     onRowSelected?(event?: any): void;
     onSelectionChanged?(event?: any): void;

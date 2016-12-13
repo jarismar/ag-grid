@@ -4,6 +4,7 @@
  * @link http://www.ag-grid.com/
  * @license MIT
  */
+"use strict";
 var VerticalStack = (function () {
     function VerticalStack() {
         this.isLayoutPanel = true;
@@ -34,5 +35,5 @@ var VerticalStack = (function () {
         }
     };
     return VerticalStack;
-})();
+}());
 exports.VerticalStack = VerticalStack;

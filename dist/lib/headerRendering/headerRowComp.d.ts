@@ -21,6 +21,8 @@ export declare class HeaderRowComp extends Component {
     private removeAndDestroyChildComponents(idsToDestroy);
     private onRowHeightChanged();
     private init();
+    private onColumnResized();
+    private setWidth();
     private onDisplayedColumnsChanged();
     private onVirtualColumnsChanged();
     private createHeaderElement(columnGroupChild);
