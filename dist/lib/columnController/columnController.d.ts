@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v7.0.2
+// Type definitions for ag-grid v8.2.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ceolter/>
 import { ColumnGroup } from "../entities/columnGroup";
@@ -93,6 +93,7 @@ export declare class ColumnController {
     private columnUtils;
     private gridPanel;
     private context;
+    private columnAnimationService;
     private aggFuncService;
     private primaryBalancedTree;
     private primaryHeaderRowCount;
@@ -128,6 +129,7 @@ export declare class ColumnController {
     private bodyWidth;
     private leftWidth;
     private rightWidth;
+    private bodyWidthDirty;
     private viewportLeft;
     private viewportRight;
     init(): void;
@@ -217,7 +219,7 @@ export declare class ColumnController {
     private sortColumnListUsingIndexes(indexes, colA, colB);
     private syncColumnWithNoState(column);
     private syncColumnWithStateItem(column, stateItem, rowGroupIndexes, pivotIndexes);
-    getGridColumns(keys: any[]): Column[];
+    getGridColumns(keys: (string | ColDef | Column)[]): Column[];
     private getColumns(keys, columnLookupCallback);
     getColumnWithValidation(key: string | ColDef | Column): Column;
     getPrimaryColumn(key: string | ColDef | Column): Column;
@@ -259,6 +261,8 @@ export declare class ColumnController {
     private buildDisplayedTrees(visibleColumns);
     private updateGroups();
     private createGroupAutoColumn();
+    private createAutoGroupColumn();
     private createValueColumns();
     private getWidthOfColsInList(columnList);
+    getGridBalancedTree(): OriginalColumnGroupChild[];
 }

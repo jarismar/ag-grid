@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v7.0.2
+// Type definitions for ag-grid v8.2.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ceolter/>
 import { Column } from "../entities/column";
@@ -6,7 +6,9 @@ import { RowNode } from "../entities/rowNode";
 import { RenderedCell } from "./renderedCell";
 import { LoggerFactory } from "../logger";
 import { GridCell } from "../entities/gridCell";
-export declare class RowRenderer {
+import { ColDef } from "../entities/colDef";
+import { BeanStub } from "../context/beanStub";
+export declare class RowRenderer extends BeanStub {
     private columnController;
     private gridOptionsWrapper;
     private gridCore;
@@ -29,37 +31,19 @@ export declare class RowRenderer {
     private renderedRows;
     private renderedTopFloatingRows;
     private renderedBottomFloatingRows;
-    private eFullWidthContainer;
-    private eBodyContainer;
-    private eBodyContainerDF;
-    private eBodyViewport;
-    private ePinnedLeftColsContainer;
-    private ePinnedLeftColsContainerDF;
-    private ePinnedRightColsContainer;
-    private ePinnedRightColsContainerDF;
-    private eFloatingTopContainer;
-    private eFloatingTopPinnedLeftContainer;
-    private eFloatingTopPinnedRightContainer;
-    private eFloatingTopFullWidthContainer;
-    private eFloatingBottomContainer;
-    private eFloatingBottomPinnedLeftContainer;
-    private eFloatingBottomPinnedRightContainer;
-    private eFloatingBottomFullWithContainer;
+    private rowContainers;
     private refreshInProgress;
     private logger;
-    private destroyFunctions;
     agWire(loggerFactory: LoggerFactory): void;
-    private setupDocumentFragments();
     init(): void;
-    getContainersFromGridPanel(): void;
     getAllCellsForColumn(column: Column): HTMLElement[];
     refreshAllFloatingRows(): void;
-    private refreshFloatingRows(renderedRows, rowNodes, ePinnedLeftContainer, ePinnedRightContainer, eBodyContainer, eFullWidthContainer);
+    private refreshFloatingRows(renderedRows, rowNodes, pinnedLeftContainerComp, pinnedRightContainerComp, bodyContainerComp, fullWidthContainerComp);
     private onFloatingRowDataChanged();
     private onModelUpdated(refreshEvent);
     private getRenderedIndexesForRowNodes(rowNodes);
     refreshRows(rowNodes: RowNode[]): void;
-    refreshView(keepRenderedRows?: boolean, animate?: boolean): void;
+    refreshView(params?: RefreshViewParams): void;
     private getLockOnRefresh();
     private releaseLockOnRefresh();
     private restoreFocusedCell(gridCell);
@@ -68,8 +52,8 @@ export declare class RowRenderer {
     forEachRenderedCell(callback: (renderedCell: RenderedCell) => void): void;
     private forEachRenderedRow(callback);
     addRenderedRowListener(eventName: string, rowIndex: number, callback: Function): void;
-    refreshCells(rowNodes: RowNode[], colIds: string[], animate?: boolean): void;
-    private destroy();
+    refreshCells(rowNodes: RowNode[], cols: (string | ColDef | Column)[], animate?: boolean): void;
+    destroy(): void;
     private refreshAllVirtualRows(keepRenderedRows, animate);
     refreshGroupRows(): void;
     private removeVirtualRows(rowsToRemove);
@@ -81,7 +65,7 @@ export declare class RowRenderer {
     private ensureRowsRendered(oldRenderedRowsByNodeId?, animate?);
     private getOrCreateRenderedRow(rowNode, oldRowsByNodeId, animate);
     getRenderedNodes(): any[];
-    navigateToNextCell(key: any, rowIndex: number, column: Column, floating: string): void;
+    navigateToNextCell(event: KeyboardEvent, key: number, rowIndex: number, column: Column, floating: string): void;
     startEditingCell(gridCell: GridCell, keyPress: number, charPress: string): void;
     private getComponentForCell(gridCell);
     onTabKeyDown(previousRenderedCell: RenderedCell, keyboardEvent: KeyboardEvent): void;
@@ -90,4 +74,11 @@ export declare class RowRenderer {
     private moveEditToNextCell(previousRenderedCell, nextRenderedCell);
     private moveEditToNextRow(previousRenderedCell, nextRenderedCell);
     private findNextCellToFocusOn(gridCell, backwards, startEditing);
+}
+export interface RefreshViewParams {
+    keepRenderedRows?: boolean;
+    animate?: boolean;
+    suppressKeepFocus?: boolean;
+    onlyBody?: boolean;
+    newData?: boolean;
 }

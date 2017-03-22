@@ -17,6 +17,18 @@ export class Timer {
     
 }
 
+/** HTML Escapes. */
+const HTML_ESCAPES :{[id:string]:string}= {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
+const reUnescapedHtml = /[&<>"']/g;
+
+
 export class Utils {
 
     // taken from:
@@ -27,6 +39,7 @@ export class Utils {
     private static isIE: boolean;
     private static isEdge: boolean;
     private static isChrome: boolean;
+    private static isFirefox: boolean;
 
     // returns true if the event is close to the original event by X pixels either vertically or horizontally.
     // we only start dragging after X pixels so this allows us to know if we should start dragging yet.
@@ -97,8 +110,8 @@ export class Utils {
     static getScrollLeft(element: HTMLElement, rtl: boolean): number {
         var scrollLeft = element.scrollLeft;
         if (rtl) {
-            // Absolute value - gets IE and FF to return the same values
-            var scrollLeft = Math.abs(scrollLeft);
+            // Absolute value - for FF that reports RTL scrolls in negative numbers
+            scrollLeft = Math.abs(scrollLeft);
 
             // Get Chrome and Safari to return the same value as well
             if (this.isBrowserSafari() || this.isBrowserChrome()) {
@@ -106,6 +119,32 @@ export class Utils {
             }
         }
         return scrollLeft;
+    }
+
+    static cleanNumber(value: any): number {
+        if (typeof value === 'string') {
+            value = parseInt(value);
+        }
+        if (typeof value === 'number') {
+            value = Math.floor(value);
+        } else {
+            value = null;
+        }
+        return value;
+    }
+
+    static setScrollLeft(element: HTMLElement, value: number, rtl: boolean): void {
+        if (rtl) {
+            // Chrome and Safari when doing RTL have the END position of the scroll as zero, not the start
+            if (this.isBrowserSafari() || this.isBrowserChrome()) {
+                value = element.scrollWidth - element.clientWidth - value;
+            }
+            // Firefox uses negative numbers when doing RTL scrolling
+            if (this.isBrowserFirefox()) {
+                value *= -1;
+            }
+        }
+        element.scrollLeft = value;
     }
 
     static iterateObject(object: any, callback: (key:string, value: any) => void) {
@@ -168,12 +207,60 @@ export class Utils {
         return result;
     }
 
+
+    static mergeDeep(object: any, source: any): void {
+        if (this.exists(source)) {
+            this.iterateObject(source, function(key: string, value: any) {
+                let currentValue: any = object[key];
+                let target: any = source[key];
+
+                if (currentValue == null){
+                    object[key] = value;
+                }
+
+                if (typeof currentValue === 'object'){
+                    if (target){
+                        Utils.mergeDeep (object[key], target)
+                    }
+                }
+
+                if (target){
+                    object[key] = target;
+                }
+            });
+        }
+    }
+
     static assign(object: any, source: any): void {
         if (this.exists(source)) {
             this.iterateObject(source, function(key: string, value: any) {
                 object[key] = value;
             });
         }
+    }
+
+    static parseYyyyMmDdToDate (yyyyMmDd:string, separator:string):Date{
+        try{
+            if (!yyyyMmDd) return null;
+            if (yyyyMmDd.indexOf(separator) === -1) return null;
+
+            let fields:string[] = yyyyMmDd.split(separator);
+            if (fields.length != 3) return null;
+            return new Date (Number(fields[0]),Number(fields[1]) - 1,Number(fields[2]));
+        }catch (e){
+            return null;
+        }
+    }
+
+    static serializeDateToYyyyMmDd (date:Date, separator:string):string {
+        if (!date) return null;
+        return date.getFullYear() + separator + Utils.pad(date.getMonth() + 1, 2) + separator + Utils.pad(date.getDate(), 2)
+    }
+
+    static pad(num: number, totalStringSize:number) : string{
+        let asString:string = num + "";
+        while (asString.length < totalStringSize) asString = "0" + asString;
+        return asString;
     }
 
     static pushAll(target: any[], source: any[]): void {
@@ -191,13 +278,21 @@ export class Utils {
         }
     }
 
-    static find<T>(collection: T[], predicate: string |((item: T) => void), value?: any): T {
+    static find<T>(collection: T[]| {[id:string]:T}, predicate: string |((item: T) => void), value?: any): T {
         if (collection === null || collection === undefined) {
             return null;
         }
+
+        if (!Array.isArray(collection)) {
+            let objToArray = this.values(collection);
+            return this.find(objToArray, predicate, value);
+        }
+
+        let collectionAsArray = <T[]> collection;
+
         var firstMatchingItem: T;
-        for (var i = 0; i < collection.length; i++) {
-            var item: T = collection[i];
+        for (var i = 0; i < collectionAsArray.length; i++) {
+            var item: T = collectionAsArray[i];
             if (typeof predicate === 'string') {
                 if ((<any>item)[predicate] === value) {
                     firstMatchingItem = item;
@@ -291,6 +386,17 @@ export class Utils {
         } else {
             return true;
         }
+    }
+
+    static anyExists(values: any[]): boolean {
+        if (values) {
+            for (var i = 0; i<values.length; i++) {
+                if (this.exists(values[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     static existsAndNotEmpty(value: any[]): boolean {
@@ -614,8 +720,12 @@ export class Utils {
         });
     }
 
-    static isScrollShowing(element: HTMLElement): boolean {
-        return element.clientHeight < element.scrollHeight
+    static isHorizontalScrollShowing(element: HTMLElement): boolean {
+        return element.clientWidth < element.scrollWidth;
+    }
+
+    static isVerticalScrollShowing(element: HTMLElement): boolean {
+        return element.clientHeight < element.scrollHeight;
     }
 
     static getScrollbarWidth() {
@@ -648,16 +758,12 @@ export class Utils {
         return pressedKey === keyToCheck;
     }
 
-    static setVisible(element: HTMLElement, visible: boolean, visibleStyle?: string) {
-        if (visible) {
-            if (this.exists(visibleStyle)) {
-                element.style.display = visibleStyle;
-            } else {
-                element.style.display = 'inline';
-            }
-        } else {
-            element.style.display = 'none';
-        }
+    static setVisible(element: HTMLElement, visible: boolean) {
+        this.addOrRemoveCssClass(element, 'ag-hidden', !visible);
+    }
+
+    static setHidden(element: HTMLElement, hidden: boolean) {
+        this.addOrRemoveCssClass(element, 'ag-visibility-hidden', hidden);
     }
 
     static isBrowserIE(): boolean {
@@ -676,7 +782,11 @@ export class Utils {
 
     static isBrowserSafari(): boolean {
         if (this.isSafari===undefined) {
-            this.isSafari = Object.prototype.toString.call((<any>window).HTMLElement).indexOf('Constructor') > 0;
+            let anyWindow = <any> window;
+            // taken from https://github.com/ceolter/ag-grid/issues/550
+            this.isSafari = Object.prototype.toString.call(anyWindow.HTMLElement).indexOf('Constructor') > 0
+                || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })
+                (!anyWindow.safari || anyWindow.safari.pushNotification);
         }
         return this.isSafari;
     }
@@ -687,6 +797,14 @@ export class Utils {
             this.isChrome = !!anyWindow.chrome && !!anyWindow.chrome.webstore;
         }
         return this.isChrome;
+    }
+
+    static isBrowserFirefox(): boolean {
+        if (this.isFirefox===undefined) {
+            let anyWindow = <any> window;
+            this.isFirefox = typeof anyWindow.InstallTrigger !== 'undefined';;
+        }
+        return this.isFirefox;
     }
 
     // srcElement is only available in IE. In all other browsers it is target
@@ -757,6 +875,17 @@ export class Utils {
                 }
             });
         }
+    }
+
+    static isNumeric (value:any): boolean {
+        return !isNaN(parseFloat(value)) && isFinite(value);
+    }
+
+    static escape (toEscape:string):string {
+        if (toEscape === null) return null;
+        if (!toEscape.replace) return toEscape;
+
+        return toEscape.replace(reUnescapedHtml, chr => HTML_ESCAPES[chr])
     }
 
     // Taken from here: https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
@@ -928,3 +1057,5 @@ export class NumberSequence {
         return valToReturn;
     }
 }
+
+export let _ = Utils;

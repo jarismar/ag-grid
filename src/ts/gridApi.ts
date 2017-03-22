@@ -1,4 +1,4 @@
-import {CsvCreator, CsvExportParams} from "./csvCreator";
+import {CsvCreator} from "./csvCreator";
 import {RowRenderer} from "./rendering/rowRenderer";
 import {HeaderRenderer} from "./headerRendering/headerRenderer";
 import {FilterManager} from "./filter/filterManager";
@@ -9,7 +9,7 @@ import {GridPanel} from "./gridPanel/gridPanel";
 import {ValueService} from "./valueService";
 import {MasterSlaveService} from "./masterSlaveService";
 import {EventService} from "./eventService";
-import {FloatingRowModel} from "./rowControllers/floatingRowModel";
+import {FloatingRowModel} from "./rowModels/floatingRowModel";
 import {ColDef, IAggFunc, ColGroupDef} from "./entities/colDef";
 import {RowNode} from "./entities/rowNode";
 import {Constants} from "./constants";
@@ -18,20 +18,24 @@ import {Bean, PostConstruct, Context, Autowired, Optional} from "./context/conte
 import {GridCore} from "./gridCore";
 import {IRowModel} from "./interfaces/iRowModel";
 import {SortController} from "./sortController";
-import {PaginationController} from "./rowControllers/paginationController";
 import {FocusedCellController} from "./focusedCellController";
 import {IRangeController, RangeSelection, AddRangeSelectionParams} from "./interfaces/iRangeController";
-import {GridCell} from "./entities/gridCell";
+import {GridCell, GridCellDef} from "./entities/gridCell";
 import {IClipboardService} from "./interfaces/iClipboardService";
 import {IInMemoryRowModel} from "./interfaces/iInMemoryRowModel";
 import {Utils as _} from "./utils";
 import {IViewportDatasource} from "./interfaces/iViewportDatasource";
 import {IMenuFactory} from "./interfaces/iMenuFactory";
-import {VirtualPageRowModel} from "./rowControllers/virtualPagination/virtualPageRowModel";
+import {VirtualPageRowModel} from "./rowModels/infinateScrolling/virtualPageRowModel";
 import {CellRendererFactory} from "./rendering/cellRendererFactory";
 import {CellEditorFactory} from "./rendering/cellEditorFactory";
 import {IAggFuncService} from "./interfaces/iAggFuncService";
-import {IFilter} from "./interfaces/iFilter";
+import {IFilter, IFilterComp} from "./interfaces/iFilter";
+import {CsvExportParams} from "./exportParams";
+import {IExcelCreator} from "./interfaces/iExcelCreator";
+import {PaginationService} from "./rowModels/pagination/paginationService";
+import {IDatasource} from "./rowModels/iDatasource";
+import {IEnterpriseDatasource, EnterpriseRowModel} from "./rowModels/enterprise/enterpriseRowModel";
 
 export interface StartEditingCellParams {
     rowIndex: number;
@@ -44,6 +48,7 @@ export interface StartEditingCellParams {
 export class GridApi {
 
     @Autowired('csvCreator') private csvCreator: CsvCreator;
+    @Optional('excelCreator') private excelCreator: IExcelCreator;
     @Autowired('gridCore') private gridCore: GridCore;
     @Autowired('rowRenderer') private rowRenderer: RowRenderer;
     @Autowired('headerRenderer') private headerRenderer: HeaderRenderer;
@@ -59,7 +64,7 @@ export class GridApi {
     @Autowired('context') private context: Context;
     @Autowired('rowModel') private rowModel: IRowModel;
     @Autowired('sortController') private sortController: SortController;
-    @Autowired('paginationController') private paginationController: PaginationController;
+    @Autowired('paginationService') private paginationService: PaginationService;
     @Autowired('focusedCellController') private focusedCellController: FocusedCellController;
     @Optional('rangeController') private rangeController: IRangeController;
     @Optional('clipboardService') private clipboardService: IClipboardService;
@@ -105,9 +110,28 @@ export class GridApi {
         this.csvCreator.exportDataAsCsv(params)
     }
 
-    public setDatasource(datasource:any) {
+    public getDataAsExcel(params?: CsvExportParams): string {
+        if (!this.excelCreator) { console.warn('ag-Grid: Excel export is only available in ag-Grid Enterprise'); }
+        return this.excelCreator.getDataAsExcelXml(params);
+    }
+
+    public exportDataAsExcel(params?: CsvExportParams): void {
+        if (!this.excelCreator) { console.warn('ag-Grid: Excel export is only available in ag-Grid Enterprise'); }
+        this.excelCreator.exportDataAsExcel(params)
+    }
+
+    public setEnterpriseDatasource(datasource: IEnterpriseDatasource) {
+        if (this.gridOptionsWrapper.isRowModelEnterprise()) {
+            (<EnterpriseRowModel>this.rowModel).setDatasource(datasource);
+        } else {
+            console.warn(`ag-Grid: you can only use an enterprise datasource when gridOptions.rowModelType is '${Constants.ROW_MODEL_TYPE_ENTERPRISE}'`)
+        }
+
+    }
+
+    public setDatasource(datasource: IDatasource) {
         if (this.gridOptionsWrapper.isRowModelPagination()) {
-            this.paginationController.setDatasource(datasource);
+            this.paginationService.setDatasource(datasource);
         } else if (this.gridOptionsWrapper.isRowModelVirtual()) {
             (<VirtualPageRowModel>this.rowModel).setDatasource(datasource);
         } else {
@@ -167,8 +191,8 @@ export class GridApi {
         this.rowRenderer.refreshRows(rowNodes);
     }
 
-    public refreshCells(rowNodes: RowNode[], colIds: string[], animate = false): void {
-        this.rowRenderer.refreshCells(rowNodes, colIds, animate);
+    public refreshCells(rowNodes: RowNode[], cols: (string|ColDef|Column)[], animate = false): void {
+        this.rowRenderer.refreshCells(rowNodes, cols, animate);
     }
 
     public rowDataChanged(rows:any) {
@@ -302,6 +326,14 @@ export class GridApi {
         this.selectionController.deselectAllRowNodes();
     }
 
+    public selectAllFiltered() {
+        this.selectionController.selectAllRowNodes(true);
+    }
+
+    public deselectAllFiltered() {
+        this.selectionController.deselectAllRowNodes(true);
+    }
+
     public recomputeAggregates(): void {
         if (_.missing(this.inMemoryRowModel)) { console.log('cannot call recomputeAggregates unless using normal row model') }
         this.inMemoryRowModel.refreshModel({step: Constants.STEP_AGGREGATE});
@@ -393,7 +425,7 @@ export class GridApi {
         return this.getFilterInstance(colDef);
     }
 
-    public getFilterInstance(key: string|Column|ColDef): IFilter {
+    public getFilterInstance(key: string|Column|ColDef): IFilterComp {
         var column = this.columnController.getPrimaryColumn(key);
         if (column) {
             return this.filterManager.getFilterComponent(column);
@@ -425,6 +457,10 @@ export class GridApi {
         this.filterManager.onFilterChanged();
     }
 
+    public onSortChanged() {
+        this.sortController.onSortChanged();
+    }
+
     public setSortModel(sortModel:any) {
         this.sortController.setSortModel(sortModel);
     }
@@ -443,6 +479,10 @@ export class GridApi {
 
     public getFocusedCell(): GridCell {
         return this.focusedCellController.getFocusedCell();
+    }
+
+    public clearFocusedCell(): void {
+        return this.focusedCellController.clearFocusedCell();
     }
 
     public setFocusedCell(rowIndex: number, colKey: Column|ColDef|string, floating?: string) {
@@ -538,7 +578,6 @@ export class GridApi {
 
     public copySelectedRowsToClipboard(includeHeader: boolean, columnKeys?: (string|Column|ColDef)[]): void {
         if (!this.clipboardService) { console.warn('ag-Grid: clipboard is only available in ag-Grid Enterprise'); }
-        var column: Column = null;
         this.clipboardService.copySelectedRowsToClipboard(includeHeader, columnKeys);
     }
 
@@ -576,7 +615,8 @@ export class GridApi {
 
     public startEditingCell(params: StartEditingCellParams): void {
         var column = this.columnController.getGridColumn(params.colKey);
-        var gridCell = new GridCell(params.rowIndex, null, column);
+        let gridCellDef = <GridCellDef> {rowIndex: params.rowIndex, floating: null, column: column};
+        var gridCell = new GridCell(gridCellDef);
         this.rowRenderer.startEditingCell(gridCell, params.keyPress, params.charPress);
     }
 
@@ -598,16 +638,16 @@ export class GridApi {
         }
     }
 
-    public insertItemsAtIndex(index: number, items: any[]): void {
-        this.rowModel.insertItemsAtIndex(index, items);
+    public insertItemsAtIndex(index: number, items: any[], skipRefresh = false): void {
+        this.rowModel.insertItemsAtIndex(index, items, skipRefresh);
     }
 
-    public removeItems(rowNodes: RowNode[]): void {
-        this.rowModel.removeItems(rowNodes);
+    public removeItems(rowNodes: RowNode[], skipRefresh = false): void {
+        this.rowModel.removeItems(rowNodes, skipRefresh);
     }
 
-    public addItems(items: any[]): void {
-        this.rowModel.addItems(items);
+    public addItems(items: any[], skipRefresh = false): void {
+        this.rowModel.addItems(items, skipRefresh);
     }
 
     public refreshVirtualPageCache(): void {
@@ -660,6 +700,47 @@ export class GridApi {
 
     public checkGridSize(): void {
         this.gridPanel.setBodyAndHeaderHeights();
+    }
+
+
+    public paginationIsLastPageFound(): boolean {
+        return this.paginationService.isLastPageFound();
+    }
+
+    public paginationGetPageSize(): number {
+        return this.paginationService.getPageSize();
+    }
+
+    public paginationGetCurrentPage(): number {
+        return this.paginationService.getCurrentPage();
+    }
+
+    public paginationGetTotalPages(): number {
+        return this.paginationService.getTotalPages();
+    }
+
+    public paginationGetRowCount(): number {
+        return this.paginationService.getRowCount();
+    }
+
+    public paginationGoToNextPage(): void {
+        this.paginationService.goToNextPage();
+    }
+
+    public paginationGoToPreviousPage(): void {
+        this.paginationService.goToPreviousPage();
+    }
+
+    public paginationGoToFirstPage(): void {
+        this.paginationService.goToFirstPage();
+    }
+
+    public paginationGoToLastPage(): void {
+        this.paginationService.goToLastPage();
+    }
+
+    public paginationGoToPage(page: number): void {
+        this.paginationService.goToPage(page);
     }
 
     /*

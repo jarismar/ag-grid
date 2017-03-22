@@ -1,7 +1,6 @@
-// Type definitions for ag-grid v7.0.2
+// Type definitions for ag-grid v8.2.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ceolter/>
-import { CsvExportParams } from "./csvCreator";
 import { MasterSlaveService } from "./masterSlaveService";
 import { ColDef, IAggFunc, ColGroupDef } from "./entities/colDef";
 import { RowNode } from "./entities/rowNode";
@@ -10,7 +9,10 @@ import { IRowModel } from "./interfaces/iRowModel";
 import { RangeSelection, AddRangeSelectionParams } from "./interfaces/iRangeController";
 import { GridCell } from "./entities/gridCell";
 import { IViewportDatasource } from "./interfaces/iViewportDatasource";
-import { IFilter } from "./interfaces/iFilter";
+import { IFilterComp } from "./interfaces/iFilter";
+import { CsvExportParams } from "./exportParams";
+import { IDatasource } from "./rowModels/iDatasource";
+import { IEnterpriseDatasource } from "./rowModels/enterprise/enterpriseRowModel";
 export interface StartEditingCellParams {
     rowIndex: number;
     colKey: string | Column | ColDef;
@@ -19,6 +21,7 @@ export interface StartEditingCellParams {
 }
 export declare class GridApi {
     private csvCreator;
+    private excelCreator;
     private gridCore;
     private rowRenderer;
     private headerRenderer;
@@ -34,7 +37,7 @@ export declare class GridApi {
     private context;
     private rowModel;
     private sortController;
-    private paginationController;
+    private paginationService;
     private focusedCellController;
     private rangeController;
     private clipboardService;
@@ -51,7 +54,10 @@ export declare class GridApi {
     getLastRenderedRow(): number;
     getDataAsCsv(params?: CsvExportParams): string;
     exportDataAsCsv(params?: CsvExportParams): void;
-    setDatasource(datasource: any): void;
+    getDataAsExcel(params?: CsvExportParams): string;
+    exportDataAsExcel(params?: CsvExportParams): void;
+    setEnterpriseDatasource(datasource: IEnterpriseDatasource): void;
+    setDatasource(datasource: IDatasource): void;
     setViewportDatasource(viewportDatasource: IViewportDatasource): void;
     setRowData(rowData: any[]): void;
     setFloatingTopRowData(rows: any[]): void;
@@ -62,7 +68,7 @@ export declare class GridApi {
     getFloatingBottomRow(index: number): RowNode;
     setColumnDefs(colDefs: (ColDef | ColGroupDef)[]): void;
     refreshRows(rowNodes: RowNode[]): void;
-    refreshCells(rowNodes: RowNode[], colIds: string[], animate?: boolean): void;
+    refreshCells(rowNodes: RowNode[], cols: (string | ColDef | Column)[], animate?: boolean): void;
     rowDataChanged(rows: any): void;
     refreshView(): void;
     setFunctionsReadOnly(readOnly: boolean): void;
@@ -86,6 +92,8 @@ export declare class GridApi {
     deselectNode(node: RowNode, suppressEvents?: boolean): void;
     selectAll(): void;
     deselectAll(): void;
+    selectAllFiltered(): void;
+    deselectAllFiltered(): void;
     recomputeAggregates(): void;
     sizeColumnsToFit(): void;
     showLoadingOverlay(): void;
@@ -108,11 +116,12 @@ export declare class GridApi {
     forEachNodeAfterFilter(callback: (rowNode: RowNode) => void): void;
     forEachNodeAfterFilterAndSort(callback: (rowNode: RowNode) => void): void;
     getFilterApiForColDef(colDef: any): any;
-    getFilterInstance(key: string | Column | ColDef): IFilter;
-    getFilterApi(key: string | Column | ColDef): IFilter;
+    getFilterInstance(key: string | Column | ColDef): IFilterComp;
+    getFilterApi(key: string | Column | ColDef): IFilterComp;
     destroyFilter(key: string | Column | ColDef): void;
     getColumnDef(key: string | Column | ColDef): ColDef;
     onFilterChanged(): void;
+    onSortChanged(): void;
     setSortModel(sortModel: any): void;
     getSortModel(): {
         colId: string;
@@ -121,6 +130,7 @@ export declare class GridApi {
     setFilterModel(model: any): void;
     getFilterModel(): any;
     getFocusedCell(): GridCell;
+    clearFocusedCell(): void;
     setFocusedCell(rowIndex: number, colKey: Column | ColDef | string, floating?: string): void;
     setHeaderHeight(headerHeight: number): void;
     showToolPanel(show: any): void;
@@ -153,9 +163,9 @@ export declare class GridApi {
         [key: string]: IAggFunc;
     }): void;
     clearAggFuncs(): void;
-    insertItemsAtIndex(index: number, items: any[]): void;
-    removeItems(rowNodes: RowNode[]): void;
-    addItems(items: any[]): void;
+    insertItemsAtIndex(index: number, items: any[], skipRefresh?: boolean): void;
+    removeItems(rowNodes: RowNode[], skipRefresh?: boolean): void;
+    addItems(items: any[], skipRefresh?: boolean): void;
     refreshVirtualPageCache(): void;
     purgeVirtualPageCache(): void;
     getVirtualRowCount(): number;
@@ -163,4 +173,14 @@ export declare class GridApi {
     setVirtualRowCount(rowCount: number, maxRowFound?: boolean): void;
     getVirtualPageState(): any;
     checkGridSize(): void;
+    paginationIsLastPageFound(): boolean;
+    paginationGetPageSize(): number;
+    paginationGetCurrentPage(): number;
+    paginationGetTotalPages(): number;
+    paginationGetRowCount(): number;
+    paginationGoToNextPage(): void;
+    paginationGoToPreviousPage(): void;
+    paginationGoToFirstPage(): void;
+    paginationGoToLastPage(): void;
+    paginationGoToPage(page: number): void;
 }

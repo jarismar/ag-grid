@@ -1,15 +1,20 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v7.0.2
+ * @version v8.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
 "use strict";
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -19,6 +24,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var svgFactory_1 = require("../../svgFactory");
 var gridOptionsWrapper_1 = require("../../gridOptionsWrapper");
 var expressionService_1 = require("../../expressionService");
@@ -33,25 +39,56 @@ var cellRendererService_1 = require("../cellRendererService");
 var valueFormatterService_1 = require("../valueFormatterService");
 var checkboxSelectionComponent_1 = require("../checkboxSelectionComponent");
 var columnController_1 = require("../../columnController/columnController");
+var column_1 = require("../../entities/column");
 var svgFactory = svgFactory_1.SvgFactory.getInstance();
 var GroupCellRenderer = (function (_super) {
     __extends(GroupCellRenderer, _super);
     function GroupCellRenderer() {
-        _super.call(this, GroupCellRenderer.TEMPLATE);
-        this.eExpanded = this.queryForHtmlElement('.ag-group-expanded');
-        this.eContracted = this.queryForHtmlElement('.ag-group-contracted');
-        this.eCheckbox = this.queryForHtmlElement('.ag-group-checkbox');
-        this.eValue = this.queryForHtmlElement('.ag-group-value');
-        this.eChildCount = this.queryForHtmlElement('.ag-group-child-count');
+        var _this = _super.call(this, GroupCellRenderer.TEMPLATE) || this;
+        _this.eExpanded = _this.queryForHtmlElement('.ag-group-expanded');
+        _this.eContracted = _this.queryForHtmlElement('.ag-group-contracted');
+        _this.eCheckbox = _this.queryForHtmlElement('.ag-group-checkbox');
+        _this.eValue = _this.queryForHtmlElement('.ag-group-value');
+        _this.eChildCount = _this.queryForHtmlElement('.ag-group-child-count');
+        return _this;
     }
     GroupCellRenderer.prototype.init = function (params) {
         this.rowNode = params.node;
         this.rowIndex = params.rowIndex;
         this.gridApi = params.api;
+        if (this.isLeaveCellBlank(params)) {
+            return;
+        }
         this.addExpandAndContract(params.eGridCell);
         this.addCheckboxIfNeeded(params);
         this.addValueElement(params);
         this.addPadding(params);
+    };
+    // if we are doing embedded full width rows, we only show the renderer when
+    // in the body, or if pinning in the pinned section, or if pinning and RTL,
+    // in the right section. otherwise we would have the cell repeated in each section.
+    GroupCellRenderer.prototype.isLeaveCellBlank = function (params) {
+        if (this.gridOptionsWrapper.isEmbedFullWidthRows()) {
+            var pinnedLeftCell = params.pinned === column_1.Column.PINNED_LEFT;
+            var pinnedRightCell = params.pinned === column_1.Column.PINNED_RIGHT;
+            var bodyCell = !pinnedLeftCell && !pinnedRightCell;
+            if (this.gridOptionsWrapper.isEnableRtl()) {
+                if (this.columnController.isPinningLeft()) {
+                    return !pinnedRightCell;
+                }
+                else {
+                    return !bodyCell;
+                }
+            }
+            else {
+                if (this.columnController.isPinningLeft()) {
+                    return !pinnedLeftCell;
+                }
+                else {
+                    return !bodyCell;
+                }
+            }
+        }
     };
     GroupCellRenderer.prototype.addPadding = function (params) {
         // only do this if an indent - as this overwrites the padding that
@@ -229,7 +266,10 @@ var GroupCellRenderer = (function (_super) {
         this.eContracted.appendChild(eContractedIcon);
         this.addDestroyableEventListener(this.eExpanded, 'click', this.onExpandOrContract.bind(this));
         this.addDestroyableEventListener(this.eContracted, 'click', this.onExpandOrContract.bind(this));
-        this.addDestroyableEventListener(eGroupCell, 'dblclick', this.onExpandOrContract.bind(this));
+        // if editing groups, then double click is to start editing
+        if (!this.gridOptionsWrapper.isEnableGroupEdit()) {
+            this.addDestroyableEventListener(eGroupCell, 'dblclick', this.onExpandOrContract.bind(this));
+        }
         // expand / contract as the user hits enter
         this.addDestroyableEventListener(eGroupCell, 'keydown', this.onKeyDown.bind(this));
         this.addDestroyableEventListener(this.rowNode, rowNode_1.RowNode.EVENT_EXPANDED_CHANGED, this.showExpandAndContractIcons.bind(this));
@@ -261,41 +301,41 @@ var GroupCellRenderer = (function (_super) {
             utils_1.Utils.setVisible(this.eContracted, false);
         }
     };
-    GroupCellRenderer.TEMPLATE = '<span>' +
-        '<span class="ag-group-expanded"></span>' +
-        '<span class="ag-group-contracted"></span>' +
-        '<span class="ag-group-checkbox"></span>' +
-        '<span class="ag-group-value"></span>' +
-        '<span class="ag-group-child-count"></span>' +
-        '</span>';
-    __decorate([
-        context_1.Autowired('gridOptionsWrapper'), 
-        __metadata('design:type', gridOptionsWrapper_1.GridOptionsWrapper)
-    ], GroupCellRenderer.prototype, "gridOptionsWrapper", void 0);
-    __decorate([
-        context_1.Autowired('expressionService'), 
-        __metadata('design:type', expressionService_1.ExpressionService)
-    ], GroupCellRenderer.prototype, "expressionService", void 0);
-    __decorate([
-        context_1.Autowired('eventService'), 
-        __metadata('design:type', eventService_1.EventService)
-    ], GroupCellRenderer.prototype, "eventService", void 0);
-    __decorate([
-        context_1.Autowired('cellRendererService'), 
-        __metadata('design:type', cellRendererService_1.CellRendererService)
-    ], GroupCellRenderer.prototype, "cellRendererService", void 0);
-    __decorate([
-        context_1.Autowired('valueFormatterService'), 
-        __metadata('design:type', valueFormatterService_1.ValueFormatterService)
-    ], GroupCellRenderer.prototype, "valueFormatterService", void 0);
-    __decorate([
-        context_1.Autowired('context'), 
-        __metadata('design:type', context_1.Context)
-    ], GroupCellRenderer.prototype, "context", void 0);
-    __decorate([
-        context_1.Autowired('columnController'), 
-        __metadata('design:type', columnController_1.ColumnController)
-    ], GroupCellRenderer.prototype, "columnController", void 0);
     return GroupCellRenderer;
 }(component_1.Component));
+GroupCellRenderer.TEMPLATE = '<span>' +
+    '<span class="ag-group-expanded"></span>' +
+    '<span class="ag-group-contracted"></span>' +
+    '<span class="ag-group-checkbox"></span>' +
+    '<span class="ag-group-value"></span>' +
+    '<span class="ag-group-child-count"></span>' +
+    '</span>';
+__decorate([
+    context_1.Autowired('gridOptionsWrapper'),
+    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+], GroupCellRenderer.prototype, "gridOptionsWrapper", void 0);
+__decorate([
+    context_1.Autowired('expressionService'),
+    __metadata("design:type", expressionService_1.ExpressionService)
+], GroupCellRenderer.prototype, "expressionService", void 0);
+__decorate([
+    context_1.Autowired('eventService'),
+    __metadata("design:type", eventService_1.EventService)
+], GroupCellRenderer.prototype, "eventService", void 0);
+__decorate([
+    context_1.Autowired('cellRendererService'),
+    __metadata("design:type", cellRendererService_1.CellRendererService)
+], GroupCellRenderer.prototype, "cellRendererService", void 0);
+__decorate([
+    context_1.Autowired('valueFormatterService'),
+    __metadata("design:type", valueFormatterService_1.ValueFormatterService)
+], GroupCellRenderer.prototype, "valueFormatterService", void 0);
+__decorate([
+    context_1.Autowired('context'),
+    __metadata("design:type", context_1.Context)
+], GroupCellRenderer.prototype, "context", void 0);
+__decorate([
+    context_1.Autowired('columnController'),
+    __metadata("design:type", columnController_1.ColumnController)
+], GroupCellRenderer.prototype, "columnController", void 0);
 exports.GroupCellRenderer = GroupCellRenderer;

@@ -28,40 +28,31 @@
 .ag-bootstrap .ag-cell-range-selected-4:not(.ag-cell-focus) {
   background-color: rgba(0,0,0,0.4);
 }
-.ag-bootstrap .ag-column-moving .ag-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
-.ag-bootstrap .ag-column-moving .ag-header-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
-.ag-bootstrap .ag-column-moving .ag-header-group-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
 .ag-bootstrap .ag-cell-focus {
   border: 2px solid #217346;
 }
 .ag-bootstrap .ag-cell-no-focus {
-  border-right: none;
   border-top: 1px solid transparent;
-  border-left: 1px solid transparent;
   border-bottom: 1px solid transparent;
 }
-.ag-bootstrap .ag-cell-first-right-pinned {
+.ag-bootstrap .ag-ltr .ag-cell-no-focus {
+  border-right: none;
+  border-left: 1px solid transparent;
+}
+.ag-bootstrap .ag-rtl .ag-cell-no-focus {
+  border-right: 1px solid transparent;
   border-left: none;
 }
-.ag-bootstrap .ag-cell-last-left-pinned {
+.ag-bootstrap .ag-rtl .ag-cell-first-right-pinned {
+  border-left: none;
+}
+.ag-bootstrap .ag-ltr .ag-cell-first-right-pinned {
+  border-left: none;
+}
+.ag-bootstrap .ag-rtl .ag-cell-last-left-pinned {
+  border-right: none;
+}
+.ag-bootstrap .ag-ltr .ag-cell-last-left-pinned {
   border-right: none;
 }
 .ag-bootstrap .ag-cell-highlight {
@@ -122,6 +113,10 @@
 .ag-bootstrap .ag-large-text {
   border: none;
 }
+.ag-bootstrap .ag-header-select-all {
+  padding: 5px 0px 0px 5px;
+  line-height: 0;
+}
 .ag-bootstrap .ag-header {
   color: #000;
   background: none;
@@ -137,8 +132,11 @@
   background: none;
   border-bottom: none;
 }
-.ag-bootstrap .ag-header-cell {
+.ag-bootstrap .ag-ltr .ag-header-cell {
   border-right: none;
+}
+.ag-bootstrap .ag-rtl .ag-header-cell {
+  border-left: none;
 }
 .ag-bootstrap .ag-header-cell-moving .ag-header-cell-label {
   opacity: 0.5;
@@ -148,8 +146,11 @@
 .ag-bootstrap .ag-header-cell-moving {
   background-color: #bebebe;
 }
-.ag-bootstrap .ag-header-group-cell {
+.ag-bootstrap .ag-ltr .ag-header-group-cell {
   border-right: none;
+}
+.ag-bootstrap .ag-rtl .ag-header-group-cell {
+  border-left: none;
 }
 .ag-bootstrap .ag-header-group-cell-with-group {
   border-bottom: none;
@@ -178,6 +179,8 @@
 .ag-bootstrap .ag-header-cell-menu-button {
   padding: 2px;
   margin-top: 4px;
+  margin-left: 1px;
+  margin-right: 1px;
   border: 1px solid transparent;
   border-radius: 3px;
   -webkit-box-sizing: content-box /* When using bootstrap, box-sizing was set to 'border-box' */;
@@ -185,8 +188,11 @@
   box-sizing: content-box /* When using bootstrap, box-sizing was set to 'border-box' */;
   line-height: 0px /* normal line height, a space was appearing below the menu button */;
 }
-.ag-bootstrap .ag-pinned-right-header {
+.ag-bootstrap .ag-ltr .ag-pinned-right-header {
   border-left: none;
+}
+.ag-bootstrap .ag-rtl .ag-pinned-left-header {
+  border-right: none;
 }
 .ag-bootstrap .ag-header-cell-menu-button:hover {
   border: none;
@@ -356,10 +362,15 @@
 }
 .ag-bootstrap .ag-tool-panel {
   background-color: #f6f6f6;
-  border-right: none;
   border-bottom: none;
   border-top: none;
   color: #000;
+}
+.ag-bootstrap .ltr .ag-tool-panel {
+  border-right: none;
+}
+.ag-bootstrap .rtl .ag-tool-panel {
+  border-left: none;
 }
 .ag-bootstrap .ag-status-bar {
   color: #000;
@@ -405,23 +416,17 @@
   padding-right: 2px;
   color: #808080;
 }
-.ag-bootstrap .ag-ltr .ag-column-drop-icon {
-  padding-right: 4px;
-}
-.ag-bootstrap .ag-rtl .ag-column-drop-icon {
-  padding-left: 4px;
+.ag-bootstrap .ag-column-drop-icon {
+  margin: 3px;
 }
 .ag-bootstrap .ag-column-drop {
   background-color: #f6f6f6;
 }
 .ag-bootstrap .ag-column-drop-horizontal {
-  padding: 4px 4px 4px 4px;
+  padding: 2px;
   border-top: none;
   border-left: none;
   border-right: none;
-}
-.ag-bootstrap .ag-column-drop-horizontal .ag-column-drop-cell {
-  padding: 2px;
 }
 .ag-bootstrap .ag-column-drop-vertical {
   padding: 4px 4px 10px 4px;

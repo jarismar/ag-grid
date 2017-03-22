@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v7.0.2
+ * @version v8.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -17,6 +17,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var logger_1 = require("./logger");
 var context_1 = require("./context/context");
 var context_2 = require("./context/context");
@@ -64,16 +65,15 @@ var ExpressionService = (function () {
             return 'return ' + expression + ';';
         }
     };
-    __decorate([
-        __param(0, context_2.Qualifier('loggerFactory')), 
-        __metadata('design:type', Function), 
-        __metadata('design:paramtypes', [logger_1.LoggerFactory]), 
-        __metadata('design:returntype', void 0)
-    ], ExpressionService.prototype, "setBeans", null);
-    ExpressionService = __decorate([
-        context_1.Bean('expressionService'), 
-        __metadata('design:paramtypes', [])
-    ], ExpressionService);
     return ExpressionService;
 }());
+__decorate([
+    __param(0, context_2.Qualifier('loggerFactory')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [logger_1.LoggerFactory]),
+    __metadata("design:returntype", void 0)
+], ExpressionService.prototype, "setBeans", null);
+ExpressionService = __decorate([
+    context_1.Bean('expressionService')
+], ExpressionService);
 exports.ExpressionService = ExpressionService;

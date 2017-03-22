@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v7.0.2
+ * @version v8.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -14,6 +14,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var csvCreator_1 = require("./csvCreator");
 var rowRenderer_1 = require("./rendering/rowRenderer");
 var headerRenderer_1 = require("./headerRendering/headerRenderer");
@@ -25,17 +26,17 @@ var gridPanel_1 = require("./gridPanel/gridPanel");
 var valueService_1 = require("./valueService");
 var masterSlaveService_1 = require("./masterSlaveService");
 var eventService_1 = require("./eventService");
-var floatingRowModel_1 = require("./rowControllers/floatingRowModel");
+var floatingRowModel_1 = require("./rowModels/floatingRowModel");
 var constants_1 = require("./constants");
 var context_1 = require("./context/context");
 var gridCore_1 = require("./gridCore");
 var sortController_1 = require("./sortController");
-var paginationController_1 = require("./rowControllers/paginationController");
 var focusedCellController_1 = require("./focusedCellController");
 var gridCell_1 = require("./entities/gridCell");
 var utils_1 = require("./utils");
 var cellRendererFactory_1 = require("./rendering/cellRendererFactory");
 var cellEditorFactory_1 = require("./rendering/cellEditorFactory");
+var paginationService_1 = require("./rowModels/pagination/paginationService");
 var GridApi = (function () {
     function GridApi() {
     }
@@ -66,9 +67,29 @@ var GridApi = (function () {
     GridApi.prototype.exportDataAsCsv = function (params) {
         this.csvCreator.exportDataAsCsv(params);
     };
+    GridApi.prototype.getDataAsExcel = function (params) {
+        if (!this.excelCreator) {
+            console.warn('ag-Grid: Excel export is only available in ag-Grid Enterprise');
+        }
+        return this.excelCreator.getDataAsExcelXml(params);
+    };
+    GridApi.prototype.exportDataAsExcel = function (params) {
+        if (!this.excelCreator) {
+            console.warn('ag-Grid: Excel export is only available in ag-Grid Enterprise');
+        }
+        this.excelCreator.exportDataAsExcel(params);
+    };
+    GridApi.prototype.setEnterpriseDatasource = function (datasource) {
+        if (this.gridOptionsWrapper.isRowModelEnterprise()) {
+            this.rowModel.setDatasource(datasource);
+        }
+        else {
+            console.warn("ag-Grid: you can only use an enterprise datasource when gridOptions.rowModelType is '" + constants_1.Constants.ROW_MODEL_TYPE_ENTERPRISE + "'");
+        }
+    };
     GridApi.prototype.setDatasource = function (datasource) {
         if (this.gridOptionsWrapper.isRowModelPagination()) {
-            this.paginationController.setDatasource(datasource);
+            this.paginationService.setDatasource(datasource);
         }
         else if (this.gridOptionsWrapper.isRowModelVirtual()) {
             this.rowModel.setDatasource(datasource);
@@ -121,9 +142,9 @@ var GridApi = (function () {
     GridApi.prototype.refreshRows = function (rowNodes) {
         this.rowRenderer.refreshRows(rowNodes);
     };
-    GridApi.prototype.refreshCells = function (rowNodes, colIds, animate) {
+    GridApi.prototype.refreshCells = function (rowNodes, cols, animate) {
         if (animate === void 0) { animate = false; }
-        this.rowRenderer.refreshCells(rowNodes, colIds, animate);
+        this.rowRenderer.refreshCells(rowNodes, cols, animate);
     };
     GridApi.prototype.rowDataChanged = function (rows) {
         console.log('ag-Grid: rowDataChanged is deprecated, either call refreshView() to refresh everything, or call rowNode.setRowData(newData) to set value on a particular node');
@@ -247,6 +268,12 @@ var GridApi = (function () {
     GridApi.prototype.deselectAll = function () {
         this.selectionController.deselectAllRowNodes();
     };
+    GridApi.prototype.selectAllFiltered = function () {
+        this.selectionController.selectAllRowNodes(true);
+    };
+    GridApi.prototype.deselectAllFiltered = function () {
+        this.selectionController.deselectAllRowNodes(true);
+    };
     GridApi.prototype.recomputeAggregates = function () {
         if (utils_1.Utils.missing(this.inMemoryRowModel)) {
             console.log('cannot call recomputeAggregates unless using normal row model');
@@ -354,6 +381,9 @@ var GridApi = (function () {
     GridApi.prototype.onFilterChanged = function () {
         this.filterManager.onFilterChanged();
     };
+    GridApi.prototype.onSortChanged = function () {
+        this.sortController.onSortChanged();
+    };
     GridApi.prototype.setSortModel = function (sortModel) {
         this.sortController.setSortModel(sortModel);
     };
@@ -368,6 +398,9 @@ var GridApi = (function () {
     };
     GridApi.prototype.getFocusedCell = function () {
         return this.focusedCellController.getFocusedCell();
+    };
+    GridApi.prototype.clearFocusedCell = function () {
+        return this.focusedCellController.clearFocusedCell();
     };
     GridApi.prototype.setFocusedCell = function (rowIndex, colKey, floating) {
         this.focusedCellController.setFocusedCell(rowIndex, colKey, floating, true);
@@ -452,7 +485,6 @@ var GridApi = (function () {
         if (!this.clipboardService) {
             console.warn('ag-Grid: clipboard is only available in ag-Grid Enterprise');
         }
-        var column = null;
         this.clipboardService.copySelectedRowsToClipboard(includeHeader, columnKeys);
     };
     GridApi.prototype.copySelectedRangeToClipboard = function (includeHeader) {
@@ -487,7 +519,8 @@ var GridApi = (function () {
     };
     GridApi.prototype.startEditingCell = function (params) {
         var column = this.columnController.getGridColumn(params.colKey);
-        var gridCell = new gridCell_1.GridCell(params.rowIndex, null, column);
+        var gridCellDef = { rowIndex: params.rowIndex, floating: null, column: column };
+        var gridCell = new gridCell_1.GridCell(gridCellDef);
         this.rowRenderer.startEditingCell(gridCell, params.keyPress, params.charPress);
     };
     GridApi.prototype.addAggFunc = function (key, aggFunc) {
@@ -505,14 +538,17 @@ var GridApi = (function () {
             this.aggFuncService.clear();
         }
     };
-    GridApi.prototype.insertItemsAtIndex = function (index, items) {
-        this.rowModel.insertItemsAtIndex(index, items);
+    GridApi.prototype.insertItemsAtIndex = function (index, items, skipRefresh) {
+        if (skipRefresh === void 0) { skipRefresh = false; }
+        this.rowModel.insertItemsAtIndex(index, items, skipRefresh);
     };
-    GridApi.prototype.removeItems = function (rowNodes) {
-        this.rowModel.removeItems(rowNodes);
+    GridApi.prototype.removeItems = function (rowNodes, skipRefresh) {
+        if (skipRefresh === void 0) { skipRefresh = false; }
+        this.rowModel.removeItems(rowNodes, skipRefresh);
     };
-    GridApi.prototype.addItems = function (items) {
-        this.rowModel.addItems(items);
+    GridApi.prototype.addItems = function (items, skipRefresh) {
+        if (skipRefresh === void 0) { skipRefresh = false; }
+        this.rowModel.addItems(items, skipRefresh);
     };
     GridApi.prototype.refreshVirtualPageCache = function () {
         if (this.virtualPageRowModel) {
@@ -565,112 +601,145 @@ var GridApi = (function () {
     GridApi.prototype.checkGridSize = function () {
         this.gridPanel.setBodyAndHeaderHeights();
     };
-    __decorate([
-        context_1.Autowired('csvCreator'), 
-        __metadata('design:type', csvCreator_1.CsvCreator)
-    ], GridApi.prototype, "csvCreator", void 0);
-    __decorate([
-        context_1.Autowired('gridCore'), 
-        __metadata('design:type', gridCore_1.GridCore)
-    ], GridApi.prototype, "gridCore", void 0);
-    __decorate([
-        context_1.Autowired('rowRenderer'), 
-        __metadata('design:type', rowRenderer_1.RowRenderer)
-    ], GridApi.prototype, "rowRenderer", void 0);
-    __decorate([
-        context_1.Autowired('headerRenderer'), 
-        __metadata('design:type', headerRenderer_1.HeaderRenderer)
-    ], GridApi.prototype, "headerRenderer", void 0);
-    __decorate([
-        context_1.Autowired('filterManager'), 
-        __metadata('design:type', filterManager_1.FilterManager)
-    ], GridApi.prototype, "filterManager", void 0);
-    __decorate([
-        context_1.Autowired('columnController'), 
-        __metadata('design:type', columnController_1.ColumnController)
-    ], GridApi.prototype, "columnController", void 0);
-    __decorate([
-        context_1.Autowired('selectionController'), 
-        __metadata('design:type', selectionController_1.SelectionController)
-    ], GridApi.prototype, "selectionController", void 0);
-    __decorate([
-        context_1.Autowired('gridOptionsWrapper'), 
-        __metadata('design:type', gridOptionsWrapper_1.GridOptionsWrapper)
-    ], GridApi.prototype, "gridOptionsWrapper", void 0);
-    __decorate([
-        context_1.Autowired('gridPanel'), 
-        __metadata('design:type', gridPanel_1.GridPanel)
-    ], GridApi.prototype, "gridPanel", void 0);
-    __decorate([
-        context_1.Autowired('valueService'), 
-        __metadata('design:type', valueService_1.ValueService)
-    ], GridApi.prototype, "valueService", void 0);
-    __decorate([
-        context_1.Autowired('masterSlaveService'), 
-        __metadata('design:type', masterSlaveService_1.MasterSlaveService)
-    ], GridApi.prototype, "masterSlaveService", void 0);
-    __decorate([
-        context_1.Autowired('eventService'), 
-        __metadata('design:type', eventService_1.EventService)
-    ], GridApi.prototype, "eventService", void 0);
-    __decorate([
-        context_1.Autowired('floatingRowModel'), 
-        __metadata('design:type', floatingRowModel_1.FloatingRowModel)
-    ], GridApi.prototype, "floatingRowModel", void 0);
-    __decorate([
-        context_1.Autowired('context'), 
-        __metadata('design:type', context_1.Context)
-    ], GridApi.prototype, "context", void 0);
-    __decorate([
-        context_1.Autowired('rowModel'), 
-        __metadata('design:type', Object)
-    ], GridApi.prototype, "rowModel", void 0);
-    __decorate([
-        context_1.Autowired('sortController'), 
-        __metadata('design:type', sortController_1.SortController)
-    ], GridApi.prototype, "sortController", void 0);
-    __decorate([
-        context_1.Autowired('paginationController'), 
-        __metadata('design:type', paginationController_1.PaginationController)
-    ], GridApi.prototype, "paginationController", void 0);
-    __decorate([
-        context_1.Autowired('focusedCellController'), 
-        __metadata('design:type', focusedCellController_1.FocusedCellController)
-    ], GridApi.prototype, "focusedCellController", void 0);
-    __decorate([
-        context_1.Optional('rangeController'), 
-        __metadata('design:type', Object)
-    ], GridApi.prototype, "rangeController", void 0);
-    __decorate([
-        context_1.Optional('clipboardService'), 
-        __metadata('design:type', Object)
-    ], GridApi.prototype, "clipboardService", void 0);
-    __decorate([
-        context_1.Optional('aggFuncService'), 
-        __metadata('design:type', Object)
-    ], GridApi.prototype, "aggFuncService", void 0);
-    __decorate([
-        context_1.Autowired('menuFactory'), 
-        __metadata('design:type', Object)
-    ], GridApi.prototype, "menuFactory", void 0);
-    __decorate([
-        context_1.Autowired('cellRendererFactory'), 
-        __metadata('design:type', cellRendererFactory_1.CellRendererFactory)
-    ], GridApi.prototype, "cellRendererFactory", void 0);
-    __decorate([
-        context_1.Autowired('cellEditorFactory'), 
-        __metadata('design:type', cellEditorFactory_1.CellEditorFactory)
-    ], GridApi.prototype, "cellEditorFactory", void 0);
-    __decorate([
-        context_1.PostConstruct, 
-        __metadata('design:type', Function), 
-        __metadata('design:paramtypes', []), 
-        __metadata('design:returntype', void 0)
-    ], GridApi.prototype, "init", null);
-    GridApi = __decorate([
-        context_1.Bean('gridApi'), 
-        __metadata('design:paramtypes', [])
-    ], GridApi);
+    GridApi.prototype.paginationIsLastPageFound = function () {
+        return this.paginationService.isLastPageFound();
+    };
+    GridApi.prototype.paginationGetPageSize = function () {
+        return this.paginationService.getPageSize();
+    };
+    GridApi.prototype.paginationGetCurrentPage = function () {
+        return this.paginationService.getCurrentPage();
+    };
+    GridApi.prototype.paginationGetTotalPages = function () {
+        return this.paginationService.getTotalPages();
+    };
+    GridApi.prototype.paginationGetRowCount = function () {
+        return this.paginationService.getRowCount();
+    };
+    GridApi.prototype.paginationGoToNextPage = function () {
+        this.paginationService.goToNextPage();
+    };
+    GridApi.prototype.paginationGoToPreviousPage = function () {
+        this.paginationService.goToPreviousPage();
+    };
+    GridApi.prototype.paginationGoToFirstPage = function () {
+        this.paginationService.goToFirstPage();
+    };
+    GridApi.prototype.paginationGoToLastPage = function () {
+        this.paginationService.goToLastPage();
+    };
+    GridApi.prototype.paginationGoToPage = function (page) {
+        this.paginationService.goToPage(page);
+    };
     return GridApi;
 }());
+__decorate([
+    context_1.Autowired('csvCreator'),
+    __metadata("design:type", csvCreator_1.CsvCreator)
+], GridApi.prototype, "csvCreator", void 0);
+__decorate([
+    context_1.Optional('excelCreator'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "excelCreator", void 0);
+__decorate([
+    context_1.Autowired('gridCore'),
+    __metadata("design:type", gridCore_1.GridCore)
+], GridApi.prototype, "gridCore", void 0);
+__decorate([
+    context_1.Autowired('rowRenderer'),
+    __metadata("design:type", rowRenderer_1.RowRenderer)
+], GridApi.prototype, "rowRenderer", void 0);
+__decorate([
+    context_1.Autowired('headerRenderer'),
+    __metadata("design:type", headerRenderer_1.HeaderRenderer)
+], GridApi.prototype, "headerRenderer", void 0);
+__decorate([
+    context_1.Autowired('filterManager'),
+    __metadata("design:type", filterManager_1.FilterManager)
+], GridApi.prototype, "filterManager", void 0);
+__decorate([
+    context_1.Autowired('columnController'),
+    __metadata("design:type", columnController_1.ColumnController)
+], GridApi.prototype, "columnController", void 0);
+__decorate([
+    context_1.Autowired('selectionController'),
+    __metadata("design:type", selectionController_1.SelectionController)
+], GridApi.prototype, "selectionController", void 0);
+__decorate([
+    context_1.Autowired('gridOptionsWrapper'),
+    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+], GridApi.prototype, "gridOptionsWrapper", void 0);
+__decorate([
+    context_1.Autowired('gridPanel'),
+    __metadata("design:type", gridPanel_1.GridPanel)
+], GridApi.prototype, "gridPanel", void 0);
+__decorate([
+    context_1.Autowired('valueService'),
+    __metadata("design:type", valueService_1.ValueService)
+], GridApi.prototype, "valueService", void 0);
+__decorate([
+    context_1.Autowired('masterSlaveService'),
+    __metadata("design:type", masterSlaveService_1.MasterSlaveService)
+], GridApi.prototype, "masterSlaveService", void 0);
+__decorate([
+    context_1.Autowired('eventService'),
+    __metadata("design:type", eventService_1.EventService)
+], GridApi.prototype, "eventService", void 0);
+__decorate([
+    context_1.Autowired('floatingRowModel'),
+    __metadata("design:type", floatingRowModel_1.FloatingRowModel)
+], GridApi.prototype, "floatingRowModel", void 0);
+__decorate([
+    context_1.Autowired('context'),
+    __metadata("design:type", context_1.Context)
+], GridApi.prototype, "context", void 0);
+__decorate([
+    context_1.Autowired('rowModel'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "rowModel", void 0);
+__decorate([
+    context_1.Autowired('sortController'),
+    __metadata("design:type", sortController_1.SortController)
+], GridApi.prototype, "sortController", void 0);
+__decorate([
+    context_1.Autowired('paginationService'),
+    __metadata("design:type", paginationService_1.PaginationService)
+], GridApi.prototype, "paginationService", void 0);
+__decorate([
+    context_1.Autowired('focusedCellController'),
+    __metadata("design:type", focusedCellController_1.FocusedCellController)
+], GridApi.prototype, "focusedCellController", void 0);
+__decorate([
+    context_1.Optional('rangeController'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "rangeController", void 0);
+__decorate([
+    context_1.Optional('clipboardService'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "clipboardService", void 0);
+__decorate([
+    context_1.Optional('aggFuncService'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "aggFuncService", void 0);
+__decorate([
+    context_1.Autowired('menuFactory'),
+    __metadata("design:type", Object)
+], GridApi.prototype, "menuFactory", void 0);
+__decorate([
+    context_1.Autowired('cellRendererFactory'),
+    __metadata("design:type", cellRendererFactory_1.CellRendererFactory)
+], GridApi.prototype, "cellRendererFactory", void 0);
+__decorate([
+    context_1.Autowired('cellEditorFactory'),
+    __metadata("design:type", cellEditorFactory_1.CellEditorFactory)
+], GridApi.prototype, "cellEditorFactory", void 0);
+__decorate([
+    context_1.PostConstruct,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], GridApi.prototype, "init", null);
+GridApi = __decorate([
+    context_1.Bean('gridApi')
+], GridApi);
 exports.GridApi = GridApi;

@@ -28,40 +28,31 @@
 .ag-material .ag-cell-range-selected-4:not(.ag-cell-focus) {
   background-color: rgba(0,0,0,0.4);
 }
-.ag-material .ag-column-moving .ag-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
-.ag-material .ag-column-moving .ag-header-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
-.ag-material .ag-column-moving .ag-header-group-cell {
-  -webkit-transition: left 0.2s;
-  -moz-transition: left 0.2s;
-  -o-transition: left 0.2s;
-  -ms-transition: left 0.2s;
-  transition: left 0.2s;
-}
 .ag-material .ag-cell-focus {
   border: 1px solid #d3d3d3;
 }
 .ag-material .ag-cell-no-focus {
-  border-right: 1px solid transparent;
   border-top: 1px solid transparent;
-  border-left: 1px solid transparent;
   border-bottom: 1px solid #d3d3d3;
 }
-.ag-material .ag-cell-first-right-pinned {
+.ag-material .ag-ltr .ag-cell-no-focus {
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
+}
+.ag-material .ag-rtl .ag-cell-no-focus {
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
+}
+.ag-material .ag-rtl .ag-cell-first-right-pinned {
   border-left: none;
 }
-.ag-material .ag-cell-last-left-pinned {
+.ag-material .ag-ltr .ag-cell-first-right-pinned {
+  border-left: none;
+}
+.ag-material .ag-rtl .ag-cell-last-left-pinned {
+  border-right: none;
+}
+.ag-material .ag-ltr .ag-cell-last-left-pinned {
   border-right: none;
 }
 .ag-material .ag-cell-highlight {
@@ -122,6 +113,10 @@
 .ag-material .ag-large-text {
   border: none;
 }
+.ag-material .ag-header-select-all {
+  padding: 5px 0px 0px 15px;
+  line-height: 0;
+}
 .ag-material .ag-header {
   color: #666;
   background: none;
@@ -137,8 +132,11 @@
   background: none;
   border-bottom: none;
 }
-.ag-material .ag-header-cell {
+.ag-material .ag-ltr .ag-header-cell {
   border-right: none;
+}
+.ag-material .ag-rtl .ag-header-cell {
+  border-left: none;
 }
 .ag-material .ag-header-cell-moving .ag-header-cell-label {
   opacity: 0.5;
@@ -148,8 +146,11 @@
 .ag-material .ag-header-cell-moving {
   background-color: #bebebe;
 }
-.ag-material .ag-header-group-cell {
+.ag-material .ag-ltr .ag-header-group-cell {
   border-right: none;
+}
+.ag-material .ag-rtl .ag-header-group-cell {
+  border-left: none;
 }
 .ag-material .ag-header-group-cell-with-group {
   border-bottom: none;
@@ -178,6 +179,8 @@
 .ag-material .ag-header-cell-menu-button {
   padding: 2px;
   margin-top: 4px;
+  margin-left: 1px;
+  margin-right: 1px;
   border: 1px solid transparent;
   border-radius: 3px;
   -webkit-box-sizing: content-box /* When using bootstrap, box-sizing was set to 'border-box' */;
@@ -185,8 +188,11 @@
   box-sizing: content-box /* When using bootstrap, box-sizing was set to 'border-box' */;
   line-height: 0px /* normal line height, a space was appearing below the menu button */;
 }
-.ag-material .ag-pinned-right-header {
+.ag-material .ag-ltr .ag-pinned-right-header {
   border-left: none;
+}
+.ag-material .ag-rtl .ag-pinned-left-header {
+  border-right: none;
 }
 .ag-material .ag-header-cell-menu-button:hover {
   border: none;
@@ -356,10 +362,15 @@
 }
 .ag-material .ag-tool-panel {
   background-color: #fff;
-  border-right: none;
   border-bottom: none;
   border-top: none;
   color: #666;
+}
+.ag-material .ltr .ag-tool-panel {
+  border-right: none;
+}
+.ag-material .rtl .ag-tool-panel {
+  border-left: none;
 }
 .ag-material .ag-status-bar {
   color: #666;
@@ -405,23 +416,17 @@
   padding-right: 2px;
   color: #808080;
 }
-.ag-material .ag-ltr .ag-column-drop-icon {
-  padding-right: 4px;
-}
-.ag-material .ag-rtl .ag-column-drop-icon {
-  padding-left: 4px;
+.ag-material .ag-column-drop-icon {
+  margin: 3px;
 }
 .ag-material .ag-column-drop {
   background-color: #fff;
 }
 .ag-material .ag-column-drop-horizontal {
-  padding: 4px 4px 4px 4px;
+  padding: 2px;
   border-top: none;
   border-left: none;
   border-right: none;
-}
-.ag-material .ag-column-drop-horizontal .ag-column-drop-cell {
-  padding: 2px;
 }
 .ag-material .ag-column-drop-vertical {
   padding: 4px 4px 10px 4px;
