@@ -1,16 +1,15 @@
 import {Utils as _} from "../utils";
-import {IFilterParams} from "../interfaces/iFilter";
+import {IFilterParams, SerializedFilter} from "../interfaces/iFilter";
 import {QuerySelector} from "../widgets/componentAnnotations";
-import {BaseFilter, Comparator, ScalarBaseFilter} from "./baseFilter";
+import {BaseFilter, Comparator, IScalarFilterParams, ScalarBaseFilter} from "./baseFilter";
 
-export interface SerializedNumberFilter {
+export interface SerializedNumberFilter extends SerializedFilter {
     filter:number
     filterTo:number
     type:string
 }
 
-
-export class NumberFilter extends ScalarBaseFilter<number, IFilterParams, SerializedNumberFilter> {
+export class NumberFilter extends ScalarBaseFilter<number, IScalarFilterParams, SerializedNumberFilter> {
     public static EQUALS = 'equals';// 1;
 
     public static NOT_EQUAL = 'notEqual';//2;
@@ -27,7 +26,6 @@ export class NumberFilter extends ScalarBaseFilter<number, IFilterParams, Serial
     @QuerySelector('#filterToText')
     private eFilterToTextField: HTMLInputElement;
 
-
     private eFilterTextField: HTMLInputElement;
     public static LESS_THAN = 'lessThan';//3;
 
@@ -35,7 +33,8 @@ export class NumberFilter extends ScalarBaseFilter<number, IFilterParams, Serial
         return {
             type: this.filter,
             filter: Number(from),
-            filterTo: this.filterNumberTo
+            filterTo: this.filterNumberTo,
+            filterType: 'number'
         };
     }
 
@@ -58,14 +57,11 @@ export class NumberFilter extends ScalarBaseFilter<number, IFilterParams, Serial
 
     public initialiseFilterBodyUi() {
         this.filterNumber = null;
-        this.setFilterType(NumberFilter.EQUALS);
         this.eFilterTextField = <HTMLInputElement> this.getGui().querySelector("#filterText");
-
 
         this.addDestroyableEventListener(this.eFilterTextField, "input", this.onTextFieldsChanged.bind(this));
         this.addDestroyableEventListener(this.eFilterToTextField, "input", this.onTextFieldsChanged.bind(this));
     }
-
 
     public afterGuiAttached() {
         this.eFilterTextField.focus();
@@ -143,7 +139,8 @@ export class NumberFilter extends ScalarBaseFilter<number, IFilterParams, Serial
         return {
             type: this.filter,
             filter: this.filterNumber,
-            filterTo: this.filterNumberTo
+            filterTo: this.filterNumberTo,
+            filterType: 'number'
         };
     }
 

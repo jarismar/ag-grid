@@ -11,6 +11,9 @@ import {IRowModel} from "../interfaces/iRowModel";
 import {Constants} from "../constants";
 import {Utils as _} from "../utils";
 import {InMemoryRowModel} from "../rowModels/inMemory/inMemoryRowModel";
+import {RowNodeCache, RowNodeCacheParams} from "../rowModels/cache/rowNodeCache";
+import {RowNodeBlock} from "../rowModels/cache/rowNodeBlock";
+import {IEventEmitter} from "../interfaces/iEventEmitter";
 
 export interface SetSelectedParams {
     // true or false, whatever you want to set selection to
@@ -25,11 +28,12 @@ export interface SetSelectedParams {
     groupSelectsFiltered?: boolean;
 }
 
-export class RowNode {
+export class RowNode implements IEventEmitter {
 
     public static EVENT_ROW_SELECTED = 'rowSelected';
     public static EVENT_DATA_CHANGED = 'dataChanged';
     public static EVENT_CELL_CHANGED = 'cellChanged';
+    public static EVENT_ALL_CHILDREN_COUNT_CELL_CHANGED = 'allChildrenCountChanged';
     public static EVENT_MOUSE_ENTER = 'mouseEnter';
     public static EVENT_MOUSE_LEAVE = 'mouseLeave';
     public static EVENT_HEIGHT_CHANGED = 'heightChanged';
@@ -83,8 +87,12 @@ export class RowNode {
     public footer: boolean;
     /** Groups only - The field we are grouping on eg Country*/
     public field: string;
+    /** Groups only - the row group column for this group */
+    public rowGroupColumn: Column;
     /** Groups only - The key for the group eg Ireland, UK, USA */
     public key: any;
+    /** Used by enterprise row model, true if this row node is a stub */
+    public stub: boolean;
 
     /** All user provided nodes */
     public allLeafChildren: RowNode[];
@@ -100,6 +108,9 @@ export class RowNode {
 
     /** Children mapped by the pivot columns */
     public childrenMapped: {[key: string]: any} = {};
+
+    /** Enterprise Row Model Only - the children are in an infinite cache */
+    public childrenCache: RowNodeCache<RowNodeBlock,RowNodeCacheParams>;
 
     /** Groups only - True if group is expanded, otherwise false */
     public expanded: boolean;
@@ -187,6 +198,14 @@ export class RowNode {
         this.rowTop = rowTop;
         if (this.eventService) {
             this.eventService.dispatchEvent(RowNode.EVENT_TOP_CHANGED);
+        }
+    }
+
+    public setAllChildrenCount(allChildrenCount: number): void {
+        if (this.allChildrenCount === allChildrenCount) { return; }
+        this.allChildrenCount = allChildrenCount;
+        if (this.eventService) {
+            this.eventService.dispatchEvent(RowNode.EVENT_ALL_CHILDREN_COUNT_CELL_CHANGED);
         }
     }
 
@@ -311,6 +330,10 @@ export class RowNode {
             tailingNodeInSequence: tailingNodeInSequence,
             rangeSelect: false
         });
+    }
+
+    public isFloating(): boolean {
+        return this.floating === Constants.FLOATING_TOP || this.floating === Constants.FLOATING_BOTTOM;
     }
 
     // to make calling code more readable, this is the same method as setSelected except it takes names parameters

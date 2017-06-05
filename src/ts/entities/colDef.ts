@@ -109,17 +109,17 @@ export interface ColDef extends AbstractColDef {
     /** A function for rendering a cell. */
     cellRenderer?: {new(): ICellRendererComp} | ICellRendererFunc | string;
     cellRendererFramework?: any;
-    cellRendererParams?: {};
+    cellRendererParams?: any;
 
     /** Cell editor */
     cellEditor?: {new(): ICellEditorComp} | string;
     cellEditorFramework?: any;
-    cellEditorParams?: {};
+    cellEditorParams?: any;
 
     /** A function for rendering a floating cell. */
     floatingCellRenderer?: {new(): ICellRendererComp} | ICellRendererFunc | string;
     floatingCellRendererFramework?: any;
-    floatingCellRendererParams?: {};
+    floatingCellRendererParams?: any;
 
     /** A function to format a value, should return a string. Not used for CSV export or copy to clipboard, only for UI cell rendering. */
     cellFormatter?: (params: any) => string;
@@ -128,6 +128,10 @@ export interface ColDef extends AbstractColDef {
 
     /** Name of function to use for aggregation. One of [sum,min,max,first,last] or a function. */
     aggFunc?: string | IAggFunc;
+
+    /** Agg funcs allowed on this column. If missing, all installed agg funcs are allowed.
+     * Can be eg ['sum','avg']. This will restrict what the GUI allows to select only.*/
+    allowedAggFuncs?: string[];
 
     /** To group by this column by default, provide an index here. */
     rowGroupIndex?: number;

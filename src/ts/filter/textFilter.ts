@@ -1,22 +1,61 @@
 import {Utils as _} from "../utils";
-import {IFilterParams, IDoesFilterPassParams} from "../interfaces/iFilter";
+import {IFilterParams, IDoesFilterPassParams, SerializedFilter} from "../interfaces/iFilter";
 import {ComparableBaseFilter, BaseFilter} from "./baseFilter";
 import {QuerySelector} from "../widgets/componentAnnotations";
 
-export interface SerializedTextFilter {
+export interface SerializedTextFilter extends SerializedFilter {
     filter:string
     type:string
 }
 
-export class TextFilter extends ComparableBaseFilter <string, IFilterParams, SerializedTextFilter> {
+export interface TextComparator {
+    (filter:string, gridValue:any, filterText:string):boolean;
+}
+
+export interface ITextFilterParams extends IFilterParams{
+    textCustomComparator?:TextComparator
+}
+
+export class TextFilter extends ComparableBaseFilter <string, ITextFilterParams, SerializedTextFilter> {
     @QuerySelector('#filterText')
     private eFilterTextField: HTMLInputElement;
+
     private filterText: string;
+    private comparator:TextComparator;
+    static DEFAULT_COMPARATOR:TextComparator = (filter:string, value:any, filterText:string)=>{
+        let filterTextLoweCase = filterText.toLowerCase();
+        let valueLowerCase = value.toString().toLowerCase();
+        switch (filter) {
+        case TextFilter.CONTAINS:
+            return valueLowerCase.indexOf(filterTextLoweCase) >= 0;
+        case TextFilter.NOT_CONTAINS:
+            return valueLowerCase.indexOf(filterTextLoweCase) === -1;
+        case TextFilter.EQUALS:
+            return valueLowerCase === filterTextLoweCase;
+        case TextFilter.NOT_EQUAL:
+            return valueLowerCase != filterTextLoweCase;
+        case TextFilter.STARTS_WITH:
+            return valueLowerCase.indexOf(filterTextLoweCase) === 0;
+        case TextFilter.ENDS_WITH:
+            var index = valueLowerCase.lastIndexOf(filterTextLoweCase);
+            return index >= 0 && index === (valueLowerCase.length - filterTextLoweCase.length);
+        default:
+            // should never happen
+            console.warn('invalid filter type ' + filter);
+            return false;
+        }
+    };
+
+
+    public customInit(): void {
+        this.comparator = this.filterParams.textCustomComparator ? this.filterParams.textCustomComparator : TextFilter.DEFAULT_COMPARATOR;
+    }
 
     modelFromFloatingFilter(from: string): SerializedTextFilter {
         return {
             type: this.filter,
-            filter: from
+            filter: from,
+            filterType: 'text'
         };
     }
 
@@ -34,7 +73,7 @@ export class TextFilter extends ComparableBaseFilter <string, IFilterParams, Ser
 
     public initialiseFilterBodyUi() {
         this.addDestroyableEventListener(this.eFilterTextField, 'input', this.onFilterTextFieldChanged.bind(this));
-        this.setType(BaseFilter.CONTAINS);
+        this.setType(this.defaultFilter);
     }
 
     public refreshFilterBodyUi() {}
@@ -64,27 +103,7 @@ export class TextFilter extends ComparableBaseFilter <string, IFilterParams, Ser
                 return false;
             }
         }
-        var filterTextLoweCase = this.filterText.toLowerCase();
-        var valueLowerCase = value.toString().toLowerCase();
-        switch (this.filter) {
-            case TextFilter.CONTAINS:
-                return valueLowerCase.indexOf(filterTextLoweCase) >= 0;
-            case TextFilter.NOT_CONTAINS:
-                return valueLowerCase.indexOf(filterTextLoweCase) === -1;
-            case TextFilter.EQUALS:
-                return valueLowerCase === filterTextLoweCase;
-            case TextFilter.NOT_EQUAL:
-                return valueLowerCase != filterTextLoweCase;
-            case TextFilter.STARTS_WITH:
-                return valueLowerCase.indexOf(filterTextLoweCase) === 0;
-            case TextFilter.ENDS_WITH:
-                var index = valueLowerCase.lastIndexOf(filterTextLoweCase);
-                return index >= 0 && index === (valueLowerCase.length - filterTextLoweCase.length);
-            default:
-                // should never happen
-                console.warn('invalid filter type ' + this.filter);
-                return false;
-        }
+        return this.comparator (this.filter, value, this.filterText);
     }
 
     private onFilterTextFieldChanged() {
@@ -119,7 +138,6 @@ export class TextFilter extends ComparableBaseFilter <string, IFilterParams, Ser
         return this.filterText;
     }
 
-
     public resetState(): void{
         this.setFilter(null);
         this.setFilterType(BaseFilter.CONTAINS);
@@ -128,7 +146,8 @@ export class TextFilter extends ComparableBaseFilter <string, IFilterParams, Ser
     public serialize(): SerializedTextFilter{
         return {
             type: this.filter,
-            filter: this.filterText
+            filter: this.filterText,
+            filterType: 'text'
         }
     }
 

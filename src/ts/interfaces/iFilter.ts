@@ -3,7 +3,6 @@ import {ColDef} from "../entities/colDef";
 import {IRowModel} from "./iRowModel";
 import {RowNode} from "../entities/rowNode";
 import {IComponent} from "./iComponent";
-import {IFloatingFilter} from "../filter/floatingFilter";
 
 export interface IFilter {
     /** This is used to show the filter icon in the header. If true, the filter icon will be shown. */
@@ -49,6 +48,10 @@ export interface IFilter {
     onFloatingFilterChanged ?(change:any): void;
 }
 
+export interface SerializedFilter {
+    filterType: string;
+}
+
 export interface IFilterComp extends IFilter, IComponent<IFilterParams> {
 }
 
@@ -70,4 +73,5 @@ export interface IFilterParams {
     doesRowPassOtherFilter: (rowNode: RowNode) => boolean;
     context: any;
     $scope: any;
+    filterOptions?: string[];
 }
