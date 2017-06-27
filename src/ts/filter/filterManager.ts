@@ -205,6 +205,8 @@ export class FilterManager {
     }
 
     public onFilterChanged(): void {
+        this.eventService.dispatchEvent(Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED);
+
         this.setAdvancedFilterPresent();
         this.updateFilterFlagInColumns();
         this.checkExternalFilter();

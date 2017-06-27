@@ -58,6 +58,7 @@ var SortController = SortController_1 = (function () {
         this.dispatchSortChangedEvents();
     };
     SortController.prototype.dispatchSortChangedEvents = function () {
+        this.eventService.dispatchEvent(events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED);
         this.eventService.dispatchEvent(events_1.Events.EVENT_SORT_CHANGED);
     };
     SortController.prototype.clearSortBarThisColumn = function (columnToSkip) {

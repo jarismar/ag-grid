@@ -54,6 +54,7 @@ export class SortController {
     }
 
     private dispatchSortChangedEvents(): void {
+        this.eventService.dispatchEvent(Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED);
         this.eventService.dispatchEvent(Events.EVENT_SORT_CHANGED);
     }
 

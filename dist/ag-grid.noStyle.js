@@ -1310,9 +1310,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return "The event " + deprecated + " has been deprecated in v10. This event is \n            not going to be triggered anymore, you should listen instead to: " + solution;
 	    };
 	    deprecatedEvents[events_1.Events.DEPRECATED_EVENT_AFTER_FILTER_CHANGED] = deprecatedInV10Msg(events_1.Events.DEPRECATED_EVENT_AFTER_FILTER_CHANGED, events_1.Events.EVENT_FILTER_CHANGED);
-	    deprecatedEvents[events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED] = deprecatedInV10Msg(events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED, events_1.Events.EVENT_FILTER_CHANGED);
+	    // deprecatedEvents[Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED]= deprecatedInV10Msg(Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED, Events.EVENT_FILTER_CHANGED);
 	    deprecatedEvents[events_1.Events.DEPRECATED_EVENT_AFTER_SORT_CHANGED] = deprecatedInV10Msg(events_1.Events.DEPRECATED_EVENT_AFTER_SORT_CHANGED, events_1.Events.EVENT_SORT_CHANGED);
-	    deprecatedEvents[events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED] = deprecatedInV10Msg(events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED, events_1.Events.EVENT_SORT_CHANGED);
+	    // deprecatedEvents[Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED]= deprecatedInV10Msg(Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED, Events.EVENT_SORT_CHANGED);
 	    return deprecatedEvents;
 	})();
 	__decorate([
@@ -14278,6 +14278,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.externalFilterPresent = this.gridOptionsWrapper.isExternalFilterPresent();
 	    };
 	    FilterManager.prototype.onFilterChanged = function () {
+	        this.eventService.dispatchEvent(events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED);
 	        this.setAdvancedFilterPresent();
 	        this.updateFilterFlagInColumns();
 	        this.checkExternalFilter();
@@ -17219,6 +17220,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.dispatchSortChangedEvents();
 	    };
 	    SortController.prototype.dispatchSortChangedEvents = function () {
+	        this.eventService.dispatchEvent(events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED);
 	        this.eventService.dispatchEvent(events_1.Events.EVENT_SORT_CHANGED);
 	    };
 	    SortController.prototype.clearSortBarThisColumn = function (columnToSkip) {

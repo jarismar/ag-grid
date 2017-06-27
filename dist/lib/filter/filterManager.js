@@ -174,6 +174,7 @@ var FilterManager = FilterManager_1 = (function () {
         this.externalFilterPresent = this.gridOptionsWrapper.isExternalFilterPresent();
     };
     FilterManager.prototype.onFilterChanged = function () {
+        this.eventService.dispatchEvent(events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED);
         this.setAdvancedFilterPresent();
         this.updateFilterFlagInColumns();
         this.checkExternalFilter();
