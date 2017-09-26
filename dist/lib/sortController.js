@@ -20,7 +20,7 @@ var context_1 = require("./context/context");
 var gridOptionsWrapper_1 = require("./gridOptionsWrapper");
 var columnController_1 = require("./columnController/columnController");
 var eventService_1 = require("./eventService");
-var events_1 = require("./events");
+var events_1 = require("./events"); // modified by ADP-e
 var context_2 = require("./context/context");
 var utils_1 = require("./utils");
 var gridApi_1 = require("./gridApi");
@@ -33,6 +33,13 @@ var SortController = (function () {
         this.setSortForColumn(column, nextDirection, multiSort);
     };
     SortController.prototype.setSortForColumn = function (column, sort, multiSort) {
+        /* Added by ADP-e */
+        var beforeSortChange = {
+            type: events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED,
+            api: this.gridApi,
+            columnApi: this.columnApi
+        };
+        this.eventService.dispatchEvent(beforeSortChange);
         // auto correct - if sort not legal value, then set it to 'no sort' (which is null)
         if (sort !== column_1.Column.SORT_ASC && sort !== column_1.Column.SORT_DESC) {
             sort = null;

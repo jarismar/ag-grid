@@ -4800,11 +4800,13 @@ var Events = (function () {
     Events.EVENT_SELECTION_CHANGED = 'selectionChanged';
     Events.EVENT_CELL_MOUSE_OVER = 'cellMouseOver';
     Events.EVENT_CELL_MOUSE_OUT = 'cellMouseOut';
+    Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED = 'beforeFilterChanged'; // added by ADP-e dev team
     /** 2 events for filtering. The grid LISTENS for filterChanged and afterFilterChanged */
     Events.EVENT_FILTER_CHANGED = 'filterChanged';
     /** Filter was change but not applied. Only useful if apply buttons are used in filters. */
     Events.EVENT_FILTER_MODIFIED = 'filterModified';
     Events.EVENT_SORT_CHANGED = 'sortChanged';
+    Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED = 'beforeSortChanged'; // added by ADP-e dev team
     /** A row was removed from the dom, for any reason. Use to clean up resources (if any) used by the row. */
     Events.EVENT_VIRTUAL_ROW_REMOVED = 'virtualRowRemoved';
     Events.EVENT_ROW_CLICKED = 'rowClicked';
@@ -9873,6 +9875,13 @@ var FilterManager = (function () {
         this.externalFilterPresent = this.gridOptionsWrapper.isExternalFilterPresent();
     };
     FilterManager.prototype.onFilterChanged = function () {
+        /* Added by ADP-e */
+        var beforeFilterChanged = {
+            type: events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED,
+            api: this.gridApi,
+            columnApi: this.columnApi
+        };
+        this.eventService.dispatchEvent(beforeFilterChanged);
         this.setAdvancedFilterPresent();
         this.updateFilterFlagInColumns();
         this.checkExternalFilter();
@@ -11969,7 +11978,7 @@ var context_1 = __webpack_require__(0);
 var gridOptionsWrapper_1 = __webpack_require__(2);
 var columnController_1 = __webpack_require__(3);
 var eventService_1 = __webpack_require__(4);
-var events_1 = __webpack_require__(5);
+var events_1 = __webpack_require__(5); // modified by ADP-e
 var context_2 = __webpack_require__(0);
 var utils_1 = __webpack_require__(1);
 var gridApi_1 = __webpack_require__(6);
@@ -11982,6 +11991,13 @@ var SortController = (function () {
         this.setSortForColumn(column, nextDirection, multiSort);
     };
     SortController.prototype.setSortForColumn = function (column, sort, multiSort) {
+        /* Added by ADP-e */
+        var beforeSortChange = {
+            type: events_1.Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED,
+            api: this.gridApi,
+            columnApi: this.columnApi
+        };
+        this.eventService.dispatchEvent(beforeSortChange);
         // auto correct - if sort not legal value, then set it to 'no sort' (which is null)
         if (sort !== column_1.Column.SORT_ASC && sort !== column_1.Column.SORT_DESC) {
             sort = null;

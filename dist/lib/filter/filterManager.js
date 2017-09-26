@@ -175,7 +175,13 @@ var FilterManager = (function () {
         this.externalFilterPresent = this.gridOptionsWrapper.isExternalFilterPresent();
     };
     FilterManager.prototype.onFilterChanged = function () {
-        this.eventService.dispatchEvent(events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED);
+        /* Added by ADP-e */
+        var beforeFilterChanged = {
+            type: events_1.Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED,
+            api: this.gridApi,
+            columnApi: this.columnApi
+        };
+        this.eventService.dispatchEvent(beforeFilterChanged);
         this.setAdvancedFilterPresent();
         this.updateFilterFlagInColumns();
         this.checkExternalFilter();

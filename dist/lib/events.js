@@ -59,11 +59,13 @@ var Events = (function () {
     Events.EVENT_SELECTION_CHANGED = 'selectionChanged';
     Events.EVENT_CELL_MOUSE_OVER = 'cellMouseOver';
     Events.EVENT_CELL_MOUSE_OUT = 'cellMouseOut';
+    Events.DEPRECATED_EVENT_BEFORE_FILTER_CHANGED = 'beforeFilterChanged'; // added by ADP-e dev team
     /** 2 events for filtering. The grid LISTENS for filterChanged and afterFilterChanged */
     Events.EVENT_FILTER_CHANGED = 'filterChanged';
     /** Filter was change but not applied. Only useful if apply buttons are used in filters. */
     Events.EVENT_FILTER_MODIFIED = 'filterModified';
     Events.EVENT_SORT_CHANGED = 'sortChanged';
+    Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED = 'beforeSortChanged'; // added by ADP-e dev team
     /** A row was removed from the dom, for any reason. Use to clean up resources (if any) used by the row. */
     Events.EVENT_VIRTUAL_ROW_REMOVED = 'virtualRowRemoved';
     Events.EVENT_ROW_CLICKED = 'rowClicked';

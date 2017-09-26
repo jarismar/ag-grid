@@ -58,11 +58,13 @@ export declare class Events {
     static EVENT_SELECTION_CHANGED: string;
     static EVENT_CELL_MOUSE_OVER: string;
     static EVENT_CELL_MOUSE_OUT: string;
+    static DEPRECATED_EVENT_BEFORE_FILTER_CHANGED: string;
     /** 2 events for filtering. The grid LISTENS for filterChanged and afterFilterChanged */
     static EVENT_FILTER_CHANGED: string;
     /** Filter was change but not applied. Only useful if apply buttons are used in filters. */
     static EVENT_FILTER_MODIFIED: string;
     static EVENT_SORT_CHANGED: string;
+    static DEPRECATED_EVENT_BEFORE_SORT_CHANGED: string;
     /** A row was removed from the dom, for any reason. Use to clean up resources (if any) used by the row. */
     static EVENT_VIRTUAL_ROW_REMOVED: string;
     static EVENT_ROW_CLICKED: string;
@@ -142,9 +144,13 @@ export interface PinnedRowDataChangedEvent extends AgGridEvent {
 }
 export interface SelectionChangedEvent extends AgGridEvent {
 }
+export interface BeforeFilterChanged extends AgGridEvent {
+}
 export interface FilterChangedEvent extends AgGridEvent {
 }
 export interface FilterModifiedEvent extends AgGridEvent {
+}
+export interface BeforeSortChanged extends AgGridEvent {
 }
 export interface SortChangedEvent extends AgGridEvent {
 }
