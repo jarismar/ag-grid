@@ -6,11 +6,15 @@ export class Constants {
     static STEP_MAP = 3;
     static STEP_AGGREGATE = 4;
     static STEP_PIVOT = 5;
-    static STEP_PAGINATE = 6;
-    static STEP_SET_HEIGHTS = 7;
 
     static ROW_BUFFER_SIZE = 10;
     static LAYOUT_INTERVAL = 500;
+
+
+    static EXPORT_TYPE_DRAG_COPY:string = 'dragCopy';
+    static EXPORT_TYPE_CLIPBOARD:string = 'clipboard';
+    static EXPORT_TYPE_EXCEL:string = 'excel';
+    static EXPORT_TYPE_CSV:string = 'csv';
 
     static KEY_BACKSPACE = 8;
     static KEY_TAB = 9;
@@ -44,18 +48,18 @@ export class Constants {
     static KEY_CTRL_RIGHT_NAME = 'ctrlRight';
     static KEY_CTRL_DOWN_NAME = 'ctrlDown';
 
-    static ROW_MODEL_TYPE_PAGINATION = 'pagination';
-    static ROW_MODEL_TYPE_VIRTUAL_DEPRECATED = 'virtual';
     static ROW_MODEL_TYPE_INFINITE = 'infinite';
     static ROW_MODEL_TYPE_VIEWPORT = 'viewport';
-    static ROW_MODEL_TYPE_NORMAL = 'normal';
+    static ROW_MODEL_TYPE_IN_MEMORY = 'inMemory';
     static ROW_MODEL_TYPE_ENTERPRISE = 'enterprise';
+
+    static DEPRECATED_ROW_MODEL_TYPE_NORMAL= 'normal';
 
     static ALWAYS = 'always';
     static ONLY_WHEN_GROUPING = 'onlyWhenGrouping';
 
-    static FLOATING_TOP = 'top';
-    static FLOATING_BOTTOM = 'bottom';
+    static PINNED_TOP = 'top';
+    static PINNED_BOTTOM = 'bottom';
     
     static VERTICAL_SCROLL_KEYS_ID = 'verticalScrollKeys';
     static HORIZONTAL_SCROLL_KEYS_ID = 'horizontalScrollKeys';

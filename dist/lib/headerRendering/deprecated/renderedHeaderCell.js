@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -40,6 +40,7 @@ var sortController_1 = require("../../sortController");
 var setLeftFeature_1 = require("../../rendering/features/setLeftFeature");
 var touchListener_1 = require("../../widgets/touchListener");
 var component_1 = require("../../widgets/component");
+var beans_1 = require("../../rendering/beans");
 var RenderedHeaderCell = (function (_super) {
     __extends(RenderedHeaderCell, _super);
     function RenderedHeaderCell(column, eRoot, dragSourceDropTarget, pinned) {
@@ -55,7 +56,7 @@ var RenderedHeaderCell = (function (_super) {
     };
     RenderedHeaderCell.prototype.init = function () {
         var eGui = this.headerTemplateLoader.createHeaderElement(this.column);
-        this.setGui(eGui);
+        this.setHtmlElementNoHydrate(eGui);
         this.createScope();
         this.addAttributes();
         cssClassApplier_1.CssClassApplier.addHeaderClassesFromColDef(this.column.getColDef(), eGui, this.gridOptionsWrapper, this.column, null);
@@ -73,13 +74,15 @@ var RenderedHeaderCell = (function (_super) {
         this.setupFilterIcon();
         this.setupText();
         this.setupWidth();
-        this.addFeature(this.context, new setLeftFeature_1.SetLeftFeature(this.column, eGui));
+        var setLeftFeature = new setLeftFeature_1.SetLeftFeature(this.column, eGui, this.beans);
+        setLeftFeature.init();
+        this.addDestroyFunc(setLeftFeature.destroy.bind(setLeftFeature));
     };
     RenderedHeaderCell.prototype.setupTooltip = function () {
         var colDef = this.column.getColDef();
         // add tooltip if exists
         if (colDef.headerTooltip) {
-            this.getGui().title = colDef.headerTooltip;
+            this.getHtmlElement().title = colDef.headerTooltip;
         }
     };
     RenderedHeaderCell.prototype.setupText = function () {
@@ -115,7 +118,7 @@ var RenderedHeaderCell = (function (_super) {
     };
     RenderedHeaderCell.prototype.onFilterChanged = function () {
         var filterPresent = this.column.isFilterActive();
-        utils_1.Utils.addOrRemoveCssClass(this.getGui(), 'ag-header-cell-filtered', filterPresent);
+        utils_1.Utils.addOrRemoveCssClass(this.getHtmlElement(), 'ag-header-cell-filtered', filterPresent);
         utils_1.Utils.addOrRemoveCssClass(this.eFilterIcon, 'ag-hidden', !filterPresent);
     };
     RenderedHeaderCell.prototype.setupWidth = function () {
@@ -123,7 +126,7 @@ var RenderedHeaderCell = (function (_super) {
         this.onColumnWidthChanged();
     };
     RenderedHeaderCell.prototype.onColumnWidthChanged = function () {
-        this.getGui().style.width = this.column.getActualWidth() + 'px';
+        this.getHtmlElement().style.width = this.column.getActualWidth() + 'px';
     };
     RenderedHeaderCell.prototype.createScope = function () {
         var _this = this;
@@ -138,7 +141,7 @@ var RenderedHeaderCell = (function (_super) {
         }
     };
     RenderedHeaderCell.prototype.addAttributes = function () {
-        this.getGui().setAttribute("colId", this.column.getColId());
+        this.getHtmlElement().setAttribute("colId", this.column.getColId());
     };
     RenderedHeaderCell.prototype.setupMenu = function () {
         var _this = this;
@@ -178,10 +181,10 @@ var RenderedHeaderCell = (function (_super) {
         // this is what makes the header go dark when it is been moved (gives impression to
         // user that the column was picked up).
         if (this.column.isMoving()) {
-            utils_1.Utils.addCssClass(this.getGui(), 'ag-header-cell-moving');
+            utils_1.Utils.addCssClass(this.getHtmlElement(), 'ag-header-cell-moving');
         }
         else {
-            utils_1.Utils.removeCssClass(this.getGui(), 'ag-header-cell-moving');
+            utils_1.Utils.removeCssClass(this.getHtmlElement(), 'ag-header-cell-moving');
         }
     };
     RenderedHeaderCell.prototype.setupMove = function (eHeaderCellLabel) {
@@ -193,28 +196,36 @@ var RenderedHeaderCell = (function (_super) {
             return;
         }
         if (eHeaderCellLabel) {
-            var dragSource = {
+            var dragSource_1 = {
                 type: dragAndDropService_1.DragSourceType.HeaderCell,
                 eElement: eHeaderCellLabel,
-                dragItem: [this.column],
+                dragItemCallback: function () { return _this.createDragItem(); },
                 dragItemName: this.displayName,
                 dragSourceDropTarget: this.dragSourceDropTarget
             };
-            this.dragAndDropService.addDragSource(dragSource, true);
-            this.addDestroyFunc(function () { return _this.dragAndDropService.removeDragSource(dragSource); });
+            this.dragAndDropService.addDragSource(dragSource_1, true);
+            this.addDestroyFunc(function () { return _this.dragAndDropService.removeDragSource(dragSource_1); });
         }
+    };
+    RenderedHeaderCell.prototype.createDragItem = function () {
+        var visibleState = {};
+        visibleState[this.column.getId()] = this.column.isVisible();
+        return {
+            columns: [this.column],
+            visibleState: visibleState
+        };
     };
     RenderedHeaderCell.prototype.setupTap = function () {
         var _this = this;
         if (this.gridOptionsWrapper.isSuppressTouch()) {
             return;
         }
-        var touchListener = new touchListener_1.TouchListener(this.getGui());
-        var tapListener = function () {
+        var touchListener = new touchListener_1.TouchListener(this.getHtmlElement());
+        var tapListener = function (event) {
             _this.sortController.progressSort(_this.column, false);
         };
-        var longTapListener = function (touch) {
-            _this.gridOptionsWrapper.getApi().showColumnMenuAfterMouseClick(_this.column, touch);
+        var longTapListener = function (event) {
+            _this.gridOptionsWrapper.getApi().showColumnMenuAfterMouseClick(_this.column, event.touchStart);
         };
         this.addDestroyableEventListener(touchListener, touchListener_1.TouchListener.EVENT_TAP, tapListener);
         this.addDestroyableEventListener(touchListener, touchListener_1.TouchListener.EVENT_LONG_TAP, longTapListener);
@@ -282,15 +293,15 @@ var RenderedHeaderCell = (function (_super) {
     RenderedHeaderCell.prototype.setupSort = function (eHeaderCellLabel) {
         var _this = this;
         var enableSorting = this.gridOptionsWrapper.isEnableSorting() && !this.column.getColDef().suppressSorting;
-        var eGui = this.getGui();
+        var element = this.getHtmlElement();
         if (!enableSorting) {
-            utils_1.Utils.removeFromParent(eGui.querySelector('#agSortAsc'));
-            utils_1.Utils.removeFromParent(eGui.querySelector('#agSortDesc'));
-            utils_1.Utils.removeFromParent(eGui.querySelector('#agNoSort'));
+            utils_1.Utils.removeFromParent(element.querySelector('#agSortAsc'));
+            utils_1.Utils.removeFromParent(element.querySelector('#agSortDesc'));
+            utils_1.Utils.removeFromParent(element.querySelector('#agNoSort'));
             return;
         }
         // add sortable class for styling
-        utils_1.Utils.addCssClass(eGui, 'ag-header-cell-sortable');
+        utils_1.Utils.addCssClass(element, 'ag-header-cell-sortable');
         // add the event on the header, so when clicked, we do sorting
         if (eHeaderCellLabel) {
             eHeaderCellLabel.addEventListener("click", function (event) {
@@ -305,9 +316,9 @@ var RenderedHeaderCell = (function (_super) {
         this.onSortChanged();
     };
     RenderedHeaderCell.prototype.onSortChanged = function () {
-        utils_1.Utils.addOrRemoveCssClass(this.getGui(), 'ag-header-cell-sorted-asc', this.column.isSortAscending());
-        utils_1.Utils.addOrRemoveCssClass(this.getGui(), 'ag-header-cell-sorted-desc', this.column.isSortDescending());
-        utils_1.Utils.addOrRemoveCssClass(this.getGui(), 'ag-header-cell-sorted-none', this.column.isSortNone());
+        utils_1.Utils.addOrRemoveCssClass(this.getHtmlElement(), 'ag-header-cell-sorted-asc', this.column.isSortAscending());
+        utils_1.Utils.addOrRemoveCssClass(this.getHtmlElement(), 'ag-header-cell-sorted-desc', this.column.isSortDescending());
+        utils_1.Utils.addOrRemoveCssClass(this.getHtmlElement(), 'ag-header-cell-sorted-none', this.column.isSortNone());
         if (this.eSortAsc) {
             utils_1.Utils.addOrRemoveCssClass(this.eSortAsc, 'ag-hidden', !this.column.isSortAscending());
         }
@@ -345,60 +356,64 @@ var RenderedHeaderCell = (function (_super) {
         var newWidth = this.startWidth + dragChangeNormalised;
         this.columnController.setColumnWidth(this.column, newWidth, finished);
     };
+    __decorate([
+        context_1.Autowired('context'),
+        __metadata("design:type", context_1.Context)
+    ], RenderedHeaderCell.prototype, "context", void 0);
+    __decorate([
+        context_1.Autowired('filterManager'),
+        __metadata("design:type", filterManager_1.FilterManager)
+    ], RenderedHeaderCell.prototype, "filterManager", void 0);
+    __decorate([
+        context_1.Autowired('columnController'),
+        __metadata("design:type", columnController_1.ColumnController)
+    ], RenderedHeaderCell.prototype, "columnController", void 0);
+    __decorate([
+        context_1.Autowired('$compile'),
+        __metadata("design:type", Object)
+    ], RenderedHeaderCell.prototype, "$compile", void 0);
+    __decorate([
+        context_1.Autowired('gridCore'),
+        __metadata("design:type", gridCore_1.GridCore)
+    ], RenderedHeaderCell.prototype, "gridCore", void 0);
+    __decorate([
+        context_1.Autowired('headerTemplateLoader'),
+        __metadata("design:type", headerTemplateLoader_1.HeaderTemplateLoader)
+    ], RenderedHeaderCell.prototype, "headerTemplateLoader", void 0);
+    __decorate([
+        context_1.Autowired('horizontalDragService'),
+        __metadata("design:type", horizontalDragService_1.HorizontalDragService)
+    ], RenderedHeaderCell.prototype, "horizontalDragService", void 0);
+    __decorate([
+        context_1.Autowired('menuFactory'),
+        __metadata("design:type", Object)
+    ], RenderedHeaderCell.prototype, "menuFactory", void 0);
+    __decorate([
+        context_1.Autowired('gridOptionsWrapper'),
+        __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+    ], RenderedHeaderCell.prototype, "gridOptionsWrapper", void 0);
+    __decorate([
+        context_1.Autowired('dragAndDropService'),
+        __metadata("design:type", dragAndDropService_1.DragAndDropService)
+    ], RenderedHeaderCell.prototype, "dragAndDropService", void 0);
+    __decorate([
+        context_1.Autowired('sortController'),
+        __metadata("design:type", sortController_1.SortController)
+    ], RenderedHeaderCell.prototype, "sortController", void 0);
+    __decorate([
+        context_1.Autowired('$scope'),
+        __metadata("design:type", Object)
+    ], RenderedHeaderCell.prototype, "$scope", void 0);
+    __decorate([
+        context_1.Autowired('beans'),
+        __metadata("design:type", beans_1.Beans)
+    ], RenderedHeaderCell.prototype, "beans", void 0);
+    __decorate([
+        context_1.PostConstruct,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], RenderedHeaderCell.prototype, "init", null);
     return RenderedHeaderCell;
 }(component_1.Component));
-__decorate([
-    context_1.Autowired('context'),
-    __metadata("design:type", context_1.Context)
-], RenderedHeaderCell.prototype, "context", void 0);
-__decorate([
-    context_1.Autowired('filterManager'),
-    __metadata("design:type", filterManager_1.FilterManager)
-], RenderedHeaderCell.prototype, "filterManager", void 0);
-__decorate([
-    context_1.Autowired('columnController'),
-    __metadata("design:type", columnController_1.ColumnController)
-], RenderedHeaderCell.prototype, "columnController", void 0);
-__decorate([
-    context_1.Autowired('$compile'),
-    __metadata("design:type", Object)
-], RenderedHeaderCell.prototype, "$compile", void 0);
-__decorate([
-    context_1.Autowired('gridCore'),
-    __metadata("design:type", gridCore_1.GridCore)
-], RenderedHeaderCell.prototype, "gridCore", void 0);
-__decorate([
-    context_1.Autowired('headerTemplateLoader'),
-    __metadata("design:type", headerTemplateLoader_1.HeaderTemplateLoader)
-], RenderedHeaderCell.prototype, "headerTemplateLoader", void 0);
-__decorate([
-    context_1.Autowired('horizontalDragService'),
-    __metadata("design:type", horizontalDragService_1.HorizontalDragService)
-], RenderedHeaderCell.prototype, "horizontalDragService", void 0);
-__decorate([
-    context_1.Autowired('menuFactory'),
-    __metadata("design:type", Object)
-], RenderedHeaderCell.prototype, "menuFactory", void 0);
-__decorate([
-    context_1.Autowired('gridOptionsWrapper'),
-    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
-], RenderedHeaderCell.prototype, "gridOptionsWrapper", void 0);
-__decorate([
-    context_1.Autowired('dragAndDropService'),
-    __metadata("design:type", dragAndDropService_1.DragAndDropService)
-], RenderedHeaderCell.prototype, "dragAndDropService", void 0);
-__decorate([
-    context_1.Autowired('sortController'),
-    __metadata("design:type", sortController_1.SortController)
-], RenderedHeaderCell.prototype, "sortController", void 0);
-__decorate([
-    context_1.Autowired('$scope'),
-    __metadata("design:type", Object)
-], RenderedHeaderCell.prototype, "$scope", void 0);
-__decorate([
-    context_1.PostConstruct,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], RenderedHeaderCell.prototype, "init", null);
 exports.RenderedHeaderCell = RenderedHeaderCell;

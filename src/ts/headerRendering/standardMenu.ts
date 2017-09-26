@@ -6,7 +6,7 @@ import {Utils as _} from "../utils";
 import {PopupService} from "../widgets/popupService";
 import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {EventService} from "../eventService";
-import {IAfterGuiAttachedParams} from "../interfaces/iComponent";
+import {IAfterGuiAttachedParams, IFilterAfterGuiAttachedParams} from "../interfaces/iComponent";
 
 @Bean('menuFactory')
 export class StandardMenuFactory implements IMenuFactory {
@@ -40,15 +40,15 @@ export class StandardMenuFactory implements IMenuFactory {
     }
 
     public showPopup(column: Column,  positionCallback: (eMenu: HTMLElement)=>void): void {
-        var filterWrapper = this.filterManager.getOrCreateFilterWrapper(column);
+        let filterWrapper = this.filterManager.getOrCreateFilterWrapper(column);
 
-        var eMenu = document.createElement('div');
+        let eMenu = document.createElement('div');
         _.addCssClass(eMenu, 'ag-menu');
         eMenu.appendChild(filterWrapper.gui);
 
-        var hidePopup: (event?: any)=>void;
+        let hidePopup: () => void;
 
-        var bodyScrollListener = (event: any) => {
+        let bodyScrollListener = (event: any) => {
             // if h scroll, popup is no longer over the column
             if (event.direction==='horizontal') {
                 hidePopup();
@@ -56,8 +56,9 @@ export class StandardMenuFactory implements IMenuFactory {
         };
 
         this.eventService.addEventListener('bodyScroll', bodyScrollListener);
-        var closedCallback = ()=> {
+        let closedCallback = ()=> {
             this.eventService.removeEventListener('bodyScroll', bodyScrollListener);
+            column.setMenuVisible(false);
         };
 
         // need to show filter before positioning, as only after filter
@@ -66,11 +67,14 @@ export class StandardMenuFactory implements IMenuFactory {
         positionCallback(eMenu);
 
         if (filterWrapper.filter.afterGuiAttached) {
-            var params: IAfterGuiAttachedParams = {
-                hidePopup: hidePopup
+            let params: IFilterAfterGuiAttachedParams = {
+                hidePopup: hidePopup,
+                eComponent: filterWrapper.gui
             };
             filterWrapper.filter.afterGuiAttached(params);
         }
+
+        column.setMenuVisible(true);
     }
 
     public isMenuEnabled(column: Column): boolean {

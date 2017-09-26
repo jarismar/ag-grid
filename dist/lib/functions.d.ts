@@ -1,5 +1,5 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./entities/rowNode";
-export declare function defaultGroupComparator(valueA: any, valueB: any, nodeA: RowNode, nodeB: RowNode): number;
+export declare function defaultGroupComparator(valueA: any, valueB: any, nodeA: RowNode, nodeB: RowNode, accentedCompare?: boolean): number;

@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -33,8 +33,16 @@ var TextFilter = (function (_super) {
     function TextFilter() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
+    TextFilter.prototype.getDefaultType = function () {
+        return baseFilter_1.BaseFilter.CONTAINS;
+    };
     TextFilter.prototype.customInit = function () {
         this.comparator = this.filterParams.textCustomComparator ? this.filterParams.textCustomComparator : TextFilter.DEFAULT_COMPARATOR;
+        this.formatter =
+            this.filterParams.textFormatter ? this.filterParams.textFormatter :
+                this.filterParams.caseSensitive == true ? TextFilter.DEFAULT_FORMATTER :
+                    TextFilter.DEFAULT_LOWERCASE_FORMATTER;
+        _super.prototype.customInit.call(this);
     };
     TextFilter.prototype.modelFromFloatingFilter = function (from) {
         return {
@@ -52,8 +60,10 @@ var TextFilter = (function (_super) {
         return "<div class=\"ag-filter-body\">\n            <input class=\"ag-filter-filter\" id=\"filterText\" type=\"text\" placeholder=\"" + translate('filterOoo', 'Filter...') + "\"/>\n        </div>";
     };
     TextFilter.prototype.initialiseFilterBodyUi = function () {
-        this.addDestroyableEventListener(this.eFilterTextField, 'input', this.onFilterTextFieldChanged.bind(this));
-        this.setType(this.defaultFilter);
+        _super.prototype.initialiseFilterBodyUi.call(this);
+        var debounceMs = this.filterParams.debounceMs != null ? this.filterParams.debounceMs : 500;
+        var toDebounce = utils_1.Utils.debounce(this.onFilterTextFieldChanged.bind(this), debounceMs);
+        this.addDestroyableEventListener(this.eFilterTextField, 'input', toDebounce);
     };
     TextFilter.prototype.refreshFilterBodyUi = function () { };
     TextFilter.prototype.afterGuiAttached = function () {
@@ -68,7 +78,7 @@ var TextFilter = (function (_super) {
         }
         var value = this.filterParams.valueGetter(params.node);
         if (!value) {
-            if (this.filter === baseFilter_1.BaseFilter.NOT_EQUAL) {
+            if (this.filter === baseFilter_1.BaseFilter.NOT_EQUAL || this.filter === baseFilter_1.BaseFilter.NOT_CONTAINS) {
                 // if there is no value, but the filter type was 'not equals',
                 // then it should pass, as a missing value is not equal whatever
                 // the user is filtering on
@@ -80,7 +90,8 @@ var TextFilter = (function (_super) {
                 return false;
             }
         }
-        return this.comparator(this.filter, value, this.filterText);
+        var valueFormatted = this.formatter(value);
+        return this.comparator(this.filter, valueFormatted, this.filterText);
     };
     TextFilter.prototype.onFilterTextFieldChanged = function () {
         var filterText = utils_1.Utils.makeNull(this.eFilterTextField.value);
@@ -88,9 +99,11 @@ var TextFilter = (function (_super) {
             filterText = null;
         }
         if (this.filterText !== filterText) {
-            var newLowerCase = filterText ? filterText.toLowerCase() : null;
-            var previousLowerCase = this.filterText ? this.filterText.toLowerCase() : null;
-            this.filterText = filterText;
+            var newLowerCase = filterText && this.filterParams.caseSensitive != true ? filterText.toLowerCase() :
+                filterText;
+            var previousLowerCase = this.filterText && this.filterParams.caseSensitive != true ? this.filterText.toLowerCase() :
+                this.filterText;
+            this.filterText = this.formatter(filterText);
             if (previousLowerCase !== newLowerCase) {
                 this.onFilterChanged();
             }
@@ -99,7 +112,7 @@ var TextFilter = (function (_super) {
     TextFilter.prototype.setFilter = function (filter) {
         filter = utils_1.Utils.makeNull(filter);
         if (filter) {
-            this.filterText = filter;
+            this.filterText = this.formatter(filter);
             this.eFilterTextField.value = filter;
         }
         else {
@@ -116,7 +129,7 @@ var TextFilter = (function (_super) {
     };
     TextFilter.prototype.serialize = function () {
         return {
-            type: this.filter,
+            type: this.filter ? this.filter : this.defaultFilter,
             filter: this.filterText,
             filterType: 'text'
         };
@@ -128,33 +141,39 @@ var TextFilter = (function (_super) {
     TextFilter.prototype.setType = function (filterType) {
         this.setFilterType(filterType);
     };
+    TextFilter.DEFAULT_FORMATTER = function (from) {
+        return from;
+    };
+    TextFilter.DEFAULT_LOWERCASE_FORMATTER = function (from) {
+        if (from == null)
+            return null;
+        return from.toString().toLowerCase();
+    };
+    TextFilter.DEFAULT_COMPARATOR = function (filter, value, filterText) {
+        switch (filter) {
+            case TextFilter.CONTAINS:
+                return value.indexOf(filterText) >= 0;
+            case TextFilter.NOT_CONTAINS:
+                return value.indexOf(filterText) === -1;
+            case TextFilter.EQUALS:
+                return value === filterText;
+            case TextFilter.NOT_EQUAL:
+                return value != filterText;
+            case TextFilter.STARTS_WITH:
+                return value.indexOf(filterText) === 0;
+            case TextFilter.ENDS_WITH:
+                var index = value.lastIndexOf(filterText);
+                return index >= 0 && index === (value.length - filterText.length);
+            default:
+                // should never happen
+                console.warn('invalid filter type ' + filter);
+                return false;
+        }
+    };
+    __decorate([
+        componentAnnotations_1.QuerySelector('#filterText'),
+        __metadata("design:type", HTMLInputElement)
+    ], TextFilter.prototype, "eFilterTextField", void 0);
     return TextFilter;
 }(baseFilter_1.ComparableBaseFilter));
-TextFilter.DEFAULT_COMPARATOR = function (filter, value, filterText) {
-    var filterTextLoweCase = filterText.toLowerCase();
-    var valueLowerCase = value.toString().toLowerCase();
-    switch (filter) {
-        case TextFilter.CONTAINS:
-            return valueLowerCase.indexOf(filterTextLoweCase) >= 0;
-        case TextFilter.NOT_CONTAINS:
-            return valueLowerCase.indexOf(filterTextLoweCase) === -1;
-        case TextFilter.EQUALS:
-            return valueLowerCase === filterTextLoweCase;
-        case TextFilter.NOT_EQUAL:
-            return valueLowerCase != filterTextLoweCase;
-        case TextFilter.STARTS_WITH:
-            return valueLowerCase.indexOf(filterTextLoweCase) === 0;
-        case TextFilter.ENDS_WITH:
-            var index = valueLowerCase.lastIndexOf(filterTextLoweCase);
-            return index >= 0 && index === (valueLowerCase.length - filterTextLoweCase.length);
-        default:
-            // should never happen
-            console.warn('invalid filter type ' + filter);
-            return false;
-    }
-};
-__decorate([
-    componentAnnotations_1.QuerySelector('#filterText'),
-    __metadata("design:type", HTMLInputElement)
-], TextFilter.prototype, "eFilterTextField", void 0);
 exports.TextFilter = TextFilter;

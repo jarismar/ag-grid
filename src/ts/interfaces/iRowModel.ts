@@ -1,5 +1,10 @@
 import {RowNode} from "../entities/rowNode";
 
+export interface RowBounds {
+    rowTop: number;
+    rowHeight: number;
+}
+
 export interface IRowModel {
 
     /** Returns the rowNode at the given index. */
@@ -18,14 +23,7 @@ export interface IRowModel {
     /** Returns true if the provided rowNode is in the list of rows to render */
     isRowPresent(rowNode: RowNode): boolean;
     /** Returns row top and bottom for a given row */
-    getRowBounds(index: number): {rowTop: number, rowHeight: number};
-
-    /** Add an item at the specified location */
-    insertItemsAtIndex(index: number, items: any[], skipRefresh: boolean): void;
-    /** Remove an item from the specified location */
-    removeItems(rowNodes: RowNode[], skipRefresh: boolean): void;
-    /** Add an item at the end */
-    addItems(items: any[], skipRefresh: boolean): void;
+    getRowBounds(index: number): RowBounds;
 
     /** Returns true if this model has no rows, regardless of model filter. EG if rows present, but filtered
      * out, this still returns false. If it returns true, then the grid shows the 'no rows' overlay - but we
@@ -34,6 +32,10 @@ export interface IRowModel {
     /** Returns true if no rows (either no rows at all, or the rows are filtered out). This is what the grid
      * uses to know if there are rows to render or not. */
     isRowsToRender(): boolean;
+
+    /** Returns all rows in range that should be selected. If there is a gap in range (non InMemoryRowModel) then
+     *  then no rows should be returned  */
+    getNodesInRangeForSelection(first: RowNode, last: RowNode): RowNode[];
 
     /** Iterate through each node. What this does depends on the model type. For inMemory, goes through
      * all nodes. For pagination, goes through current page. For virtualPage, goes through what's loaded in memory. */
@@ -48,4 +50,5 @@ export interface IRowModel {
      * not shown. This is always true for InMemoryRowModel. It toggles for InfiniteRowModel.
      */
     isLastRowFound(): boolean;
+
 }

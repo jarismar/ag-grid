@@ -1,6 +1,6 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { AgCheckbox } from "../../widgets/agCheckbox";
 import { BeanStub } from "../../context/beanStub";
 import { Column } from "../../entities/column";

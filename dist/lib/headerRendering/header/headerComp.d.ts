@@ -1,9 +1,9 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Component } from "../../widgets/component";
 import { Column } from "../../entities/column";
-import { IComponent } from "../../interfaces/iComponent";
+import { IAfterGuiAttachedParams, IComponent } from "../../interfaces/iComponent";
 import { ColumnApi } from "../../columnController/columnController";
 import { GridApi } from "../../gridApi";
 export interface IHeaderParams {
@@ -20,7 +20,7 @@ export interface IHeaderParams {
 }
 export interface IHeader {
 }
-export interface IHeaderComp extends IHeader, IComponent<IHeaderParams> {
+export interface IHeaderComp extends IHeader, IComponent<IHeaderParams, IAfterGuiAttachedParams> {
 }
 export declare class HeaderComp extends Component implements IHeaderComp {
     private static TEMPLATE;
@@ -41,10 +41,11 @@ export declare class HeaderComp extends Component implements IHeaderComp {
     init(params: IHeaderParams): void;
     private setupText(displayName);
     private setupIcons(column);
-    private addInIcon(iconName, eParent, column, defaultIconFactory);
+    private addInIcon(iconName, eParent, column);
     private setupTap();
     private setupMenu();
     showMenu(eventSource: HTMLElement): void;
+    private removeSortIcons();
     setupSort(): void;
     private onSortChanged();
     private setMultiSortOrder();

@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -38,6 +38,8 @@ var infiniteCache_1 = require("./infiniteCache");
 var beanStub_1 = require("../../context/beanStub");
 var rowNodeCache_1 = require("../cache/rowNodeCache");
 var rowNodeBlockLoader_1 = require("../cache/rowNodeBlockLoader");
+var gridApi_1 = require("../../gridApi");
+var columnController_1 = require("../../columnController/columnController");
 var InfiniteRowModel = (function (_super) {
     __extends(InfiniteRowModel, _super);
     function InfiniteRowModel() {
@@ -103,7 +105,7 @@ var InfiniteRowModel = (function (_super) {
             console.error('ag-Grid: since version 5.1.x, overflowSize is replaced with grid property paginationOverflowSize');
         }
         if (utils_1.Utils.exists(ds.blockSize)) {
-            console.error('ag-Grid: since version 5.1.x, pageSize is replaced with grid property infinitePageSize');
+            console.error('ag-Grid: since version 5.1.x, pageSize/blockSize is replaced with grid property infinitePageSize');
         }
     };
     InfiniteRowModel.prototype.isEmpty = function () {
@@ -111,6 +113,9 @@ var InfiniteRowModel = (function (_super) {
     };
     InfiniteRowModel.prototype.isRowsToRender = function () {
         return utils_1.Utils.exists(this.infiniteCache);
+    };
+    InfiniteRowModel.prototype.getNodesInRangeForSelection = function (firstInRange, lastInRange) {
+        return this.infiniteCache.getRowNodesInRange(firstInRange, lastInRange);
     };
     InfiniteRowModel.prototype.reset = function () {
         // important to return here, as the user could be setting filter or sort before
@@ -126,7 +131,21 @@ var InfiniteRowModel = (function (_super) {
             this.selectionController.reset();
         }
         this.resetCache();
-        this.eventService.dispatchEvent(events_1.Events.EVENT_MODEL_UPDATED);
+        var event = this.createModelUpdatedEvent();
+        this.eventService.dispatchEvent(event);
+    };
+    InfiniteRowModel.prototype.createModelUpdatedEvent = function () {
+        return {
+            type: events_1.Events.EVENT_MODEL_UPDATED,
+            api: this.gridApi,
+            columnApi: this.columnApi,
+            // not sure if these should all be false - noticed if after implementing,
+            // maybe they should be true?
+            newPage: false,
+            newData: false,
+            keepRenderedRows: false,
+            animate: false
+        };
     };
     InfiniteRowModel.prototype.resetCache = function () {
         // if not first time creating a cache, need to destroy the old one
@@ -189,7 +208,8 @@ var InfiniteRowModel = (function (_super) {
         }
     };
     InfiniteRowModel.prototype.onCacheUpdated = function () {
-        this.eventService.dispatchEvent(events_1.Events.EVENT_MODEL_UPDATED);
+        var event = this.createModelUpdatedEvent();
+        this.eventService.dispatchEvent(event);
     };
     InfiniteRowModel.prototype.getRow = function (rowIndex) {
         return this.infiniteCache ? this.infiniteCache.getRow(rowIndex) : null;
@@ -225,21 +245,20 @@ var InfiniteRowModel = (function (_super) {
     InfiniteRowModel.prototype.getRowCount = function () {
         return this.infiniteCache ? this.infiniteCache.getVirtualRowCount() : 0;
     };
-    InfiniteRowModel.prototype.insertItemsAtIndex = function (index, items, skipRefresh) {
+    InfiniteRowModel.prototype.updateRowData = function (transaction) {
+        if (utils_1.Utils.exists(transaction.remove) || utils_1.Utils.exists(transaction.update)) {
+            console.warn('ag-Grid: updateRowData for InfiniteRowModel does not support remove or update, only add');
+            return;
+        }
+        if (utils_1.Utils.missing(transaction.addIndex)) {
+            console.warn('ag-Grid: updateRowData for InfiniteRowModel requires add and addIndex to be set');
+            return;
+        }
         if (this.infiniteCache) {
-            this.infiniteCache.insertItemsAtIndex(index, items);
+            this.infiniteCache.insertItemsAtIndex(transaction.addIndex, transaction.add);
         }
     };
-    InfiniteRowModel.prototype.removeItems = function (rowNodes, skipRefresh) {
-        console.log('ag-Grid: it is not possible to removeItems when using virtual pagination. Instead use the ' +
-            'API to refresh the cache');
-    };
-    InfiniteRowModel.prototype.addItems = function (items, skipRefresh) {
-        console.log('ag-Grid: it is not possible to add items when using virtual pagination as the grid does not ' +
-            'know that last index of your data - instead either use insertItemsAtIndex OR refresh the cache.');
-    };
     InfiniteRowModel.prototype.isRowPresent = function (rowNode) {
-        console.log('ag-Grid: not supported.');
         return false;
     };
     InfiniteRowModel.prototype.refreshCache = function () {
@@ -278,45 +297,53 @@ var InfiniteRowModel = (function (_super) {
             return null;
         }
     };
+    __decorate([
+        context_1.Autowired('gridOptionsWrapper'),
+        __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+    ], InfiniteRowModel.prototype, "gridOptionsWrapper", void 0);
+    __decorate([
+        context_1.Autowired('filterManager'),
+        __metadata("design:type", filterManager_1.FilterManager)
+    ], InfiniteRowModel.prototype, "filterManager", void 0);
+    __decorate([
+        context_1.Autowired('sortController'),
+        __metadata("design:type", sortController_1.SortController)
+    ], InfiniteRowModel.prototype, "sortController", void 0);
+    __decorate([
+        context_1.Autowired('selectionController'),
+        __metadata("design:type", selectionController_1.SelectionController)
+    ], InfiniteRowModel.prototype, "selectionController", void 0);
+    __decorate([
+        context_1.Autowired('eventService'),
+        __metadata("design:type", eventService_1.EventService)
+    ], InfiniteRowModel.prototype, "eventService", void 0);
+    __decorate([
+        context_1.Autowired('context'),
+        __metadata("design:type", context_1.Context)
+    ], InfiniteRowModel.prototype, "context", void 0);
+    __decorate([
+        context_1.Autowired('gridApi'),
+        __metadata("design:type", gridApi_1.GridApi)
+    ], InfiniteRowModel.prototype, "gridApi", void 0);
+    __decorate([
+        context_1.Autowired('columnApi'),
+        __metadata("design:type", columnController_1.ColumnApi)
+    ], InfiniteRowModel.prototype, "columnApi", void 0);
+    __decorate([
+        context_1.PostConstruct,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], InfiniteRowModel.prototype, "init", null);
+    __decorate([
+        context_1.PreDestroy,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], InfiniteRowModel.prototype, "destroy", null);
+    InfiniteRowModel = __decorate([
+        context_1.Bean('rowModel')
+    ], InfiniteRowModel);
     return InfiniteRowModel;
 }(beanStub_1.BeanStub));
-__decorate([
-    context_1.Autowired('gridOptionsWrapper'),
-    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
-], InfiniteRowModel.prototype, "gridOptionsWrapper", void 0);
-__decorate([
-    context_1.Autowired('filterManager'),
-    __metadata("design:type", filterManager_1.FilterManager)
-], InfiniteRowModel.prototype, "filterManager", void 0);
-__decorate([
-    context_1.Autowired('sortController'),
-    __metadata("design:type", sortController_1.SortController)
-], InfiniteRowModel.prototype, "sortController", void 0);
-__decorate([
-    context_1.Autowired('selectionController'),
-    __metadata("design:type", selectionController_1.SelectionController)
-], InfiniteRowModel.prototype, "selectionController", void 0);
-__decorate([
-    context_1.Autowired('eventService'),
-    __metadata("design:type", eventService_1.EventService)
-], InfiniteRowModel.prototype, "eventService", void 0);
-__decorate([
-    context_1.Autowired('context'),
-    __metadata("design:type", context_1.Context)
-], InfiniteRowModel.prototype, "context", void 0);
-__decorate([
-    context_1.PostConstruct,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], InfiniteRowModel.prototype, "init", null);
-__decorate([
-    context_1.PreDestroy,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], InfiniteRowModel.prototype, "destroy", null);
-InfiniteRowModel = __decorate([
-    context_1.Bean('rowModel')
-], InfiniteRowModel);
 exports.InfiniteRowModel = InfiniteRowModel;

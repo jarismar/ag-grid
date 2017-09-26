@@ -1,11 +1,11 @@
-import {Utils as _, NumberSequence} from "../../utils";
+import {NumberSequence, Utils as _} from "../../utils";
 import {GridOptionsWrapper} from "../../gridOptionsWrapper";
 import {RowNode} from "../../entities/rowNode";
-import {Bean, Context, Autowired, PostConstruct, PreDestroy} from "../../context/context";
+import {Autowired, Bean, Context, PostConstruct, PreDestroy} from "../../context/context";
 import {EventService} from "../../eventService";
 import {SelectionController} from "../../selectionController";
-import {IRowModel} from "../../interfaces/iRowModel";
-import {Events} from "../../events";
+import {IRowModel, RowBounds} from "../../interfaces/iRowModel";
+import {Events, ModelUpdatedEvent} from "../../events";
 import {SortController} from "../../sortController";
 import {FilterManager} from "../../filter/filterManager";
 import {Constants} from "../../constants";
@@ -14,6 +14,9 @@ import {InfiniteCache, InfiniteCacheParams} from "./infiniteCache";
 import {BeanStub} from "../../context/beanStub";
 import {RowNodeCache} from "../cache/rowNodeCache";
 import {RowNodeBlockLoader} from "../cache/rowNodeBlockLoader";
+import {RowDataTransaction} from "../inMemory/inMemoryRowModel";
+import {GridApi} from "../../gridApi";
+import {ColumnApi} from "../../columnController/columnController";
 
 @Bean('rowModel')
 export class InfiniteRowModel extends BeanStub implements IRowModel {
@@ -24,6 +27,8 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     @Autowired('selectionController') private selectionController: SelectionController;
     @Autowired('eventService') private eventService: EventService;
     @Autowired('context') private context: Context;
+    @Autowired('gridApi') private gridApi: GridApi;
+    @Autowired('columnApi') private columnApi: ColumnApi;
 
     private infiniteCache: InfiniteCache;
     private rowNodeBlockLoader: RowNodeBlockLoader;
@@ -32,7 +37,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
 
     private rowHeight: number;
 
-    public getRowBounds(index: number): {rowTop: number, rowHeight: number} {
+    public getRowBounds(index: number): RowBounds {
         return {
             rowHeight: this.rowHeight,
             rowTop: this.rowHeight * index
@@ -92,7 +97,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     }
 
     private checkForDeprecated(): void {
-        var ds = <any> this.datasource;
+        let ds = <any> this.datasource;
         // the number of concurrent loads we are allowed to the server
         if (_.exists(ds.maxConcurrentRequests)) {
             console.error('ag-Grid: since version 5.1.x, maxConcurrentRequests is replaced with grid property maxConcurrentDatasourceRequests');
@@ -107,7 +112,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         }
 
         if (_.exists(ds.blockSize)) {
-            console.error('ag-Grid: since version 5.1.x, pageSize is replaced with grid property infinitePageSize');
+            console.error('ag-Grid: since version 5.1.x, pageSize/blockSize is replaced with grid property infinitePageSize');
         }
     }
 
@@ -117,6 +122,10 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
 
     public isRowsToRender(): boolean {
         return _.exists(this.infiniteCache);
+    }
+
+    public getNodesInRangeForSelection(firstInRange: RowNode, lastInRange: RowNode): RowNode[] {
+        return this.infiniteCache.getRowNodesInRange(firstInRange, lastInRange);
     }
 
     private reset() {
@@ -129,14 +138,29 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         // if user is providing id's, then this means we can keep the selection between datsource hits,
         // as the rows will keep their unique id's even if, for example, server side sorting or filtering
         // is done.
-        var userGeneratingIds = _.exists(this.gridOptionsWrapper.getRowNodeIdFunc());
+        let userGeneratingIds = _.exists(this.gridOptionsWrapper.getRowNodeIdFunc());
         if (!userGeneratingIds) {
             this.selectionController.reset();
         }
 
         this.resetCache();
 
-        this.eventService.dispatchEvent(Events.EVENT_MODEL_UPDATED);
+        let event: ModelUpdatedEvent = this.createModelUpdatedEvent();
+        this.eventService.dispatchEvent(event);
+    }
+
+    private createModelUpdatedEvent(): ModelUpdatedEvent {
+        return {
+            type: Events.EVENT_MODEL_UPDATED,
+            api: this.gridApi,
+            columnApi: this.columnApi,
+            // not sure if these should all be false - noticed if after implementing,
+            // maybe they should be true?
+            newPage: false,
+            newData: false,
+            keepRenderedRows: false,
+            animate: false
+        };
     }
 
     private resetCache(): void {
@@ -212,7 +236,8 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     }
 
     private onCacheUpdated(): void {
-        this.eventService.dispatchEvent(Events.EVENT_MODEL_UPDATED);
+        let event: ModelUpdatedEvent = this.createModelUpdatedEvent();
+        this.eventService.dispatchEvent(event);
     }
 
     public getRow(rowIndex: number): RowNode {
@@ -231,7 +256,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
 
     public getRowIndexAtPixel(pixel: number): number {
         if (this.rowHeight !== 0) { // avoid divide by zero error
-            var rowIndexForPixel = Math.floor(pixel / this.rowHeight);
+            let rowIndexForPixel = Math.floor(pixel / this.rowHeight);
             if (rowIndexForPixel > this.getPageLastRow()) {
                 return this.getPageLastRow();
             } else {
@@ -254,24 +279,21 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         return this.infiniteCache ? this.infiniteCache.getVirtualRowCount() : 0;
     }
 
-    public insertItemsAtIndex(index: number, items: any[], skipRefresh: boolean): void {
+    public updateRowData(transaction: RowDataTransaction): void {
+        if (_.exists(transaction.remove) || _.exists(transaction.update) ) {
+            console.warn('ag-Grid: updateRowData for InfiniteRowModel does not support remove or update, only add');
+            return;
+        }
+        if (_.missing(transaction.addIndex)) {
+            console.warn('ag-Grid: updateRowData for InfiniteRowModel requires add and addIndex to be set');
+            return;
+        }
         if (this.infiniteCache) {
-            this.infiniteCache.insertItemsAtIndex(index, items);
+            this.infiniteCache.insertItemsAtIndex(transaction.addIndex, transaction.add);
         }
     }
 
-    public removeItems(rowNodes: RowNode[], skipRefresh: boolean): void {
-        console.log('ag-Grid: it is not possible to removeItems when using virtual pagination. Instead use the ' +
-            'API to refresh the cache');
-    }
-
-    public addItems(items: any[], skipRefresh: boolean): void {
-        console.log('ag-Grid: it is not possible to add items when using virtual pagination as the grid does not ' +
-            'know that last index of your data - instead either use insertItemsAtIndex OR refresh the cache.');
-    }
-
     public isRowPresent(rowNode: RowNode): boolean {
-        console.log('ag-Grid: not supported.');
         return false;
     }
 

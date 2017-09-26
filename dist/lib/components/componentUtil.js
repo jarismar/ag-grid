@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -106,11 +106,11 @@ var ComponentUtil = (function () {
         if (changes.rowData) {
             api.setRowData(changes.rowData.currentValue);
         }
-        if (changes.floatingTopRowData) {
-            api.setFloatingTopRowData(changes.floatingTopRowData.currentValue);
+        if (changes.pinnedTopRowData) {
+            api.setFloatingTopRowData(changes.pinnedTopRowData.currentValue);
         }
-        if (changes.floatingBottomRowData) {
-            api.setFloatingBottomRowData(changes.floatingBottomRowData.currentValue);
+        if (changes.pinnedBottomRowData) {
+            api.setFloatingBottomRowData(changes.pinnedBottomRowData.currentValue);
         }
         if (changes.columnDefs) {
             api.setColumnDefs(changes.columnDefs.currentValue);
@@ -127,7 +127,19 @@ var ComponentUtil = (function () {
         if (changes.pivotMode) {
             columnApi.setPivotMode(ComponentUtil.toBoolean(changes.pivotMode.currentValue));
         }
-        api.dispatchEvent(events_1.Events.EVENT_COMPONENT_STATE_CHANGED, changes);
+        if (changes.groupRemoveSingleChildren) {
+            api.setGroupRemoveSingleChildren(ComponentUtil.toBoolean(changes.groupRemoveSingleChildren.currentValue));
+        }
+        // copy changes into an event for dispatch
+        var event = {
+            type: events_1.Events.EVENT_COMPONENT_STATE_CHANGED,
+            api: gridOptions.api,
+            columnApi: gridOptions.columnApi
+        };
+        utils_1.Utils.iterateObject(changes, function (key, value) {
+            event[key] = value;
+        });
+        api.dispatchEvent(event);
     };
     ComponentUtil.toBoolean = function (value) {
         if (typeof value === 'boolean') {
@@ -153,75 +165,78 @@ var ComponentUtil = (function () {
             return undefined;
         }
     };
+    // all the events are populated in here AFTER this class (at the bottom of the file).
+    ComponentUtil.EVENTS = [];
+    ComponentUtil.STRING_PROPERTIES = [
+        'sortingOrder', 'rowClass', 'rowSelection', 'overlayLoadingTemplate',
+        'overlayNoRowsTemplate', 'headerCellTemplate', 'quickFilterText', 'rowModelType',
+        'editType', 'domLayout', 'clipboardDeliminator', 'rowGroupPanelShow'
+    ];
+    ComponentUtil.OBJECT_PROPERTIES = [
+        'components', 'frameworkComponents', 'rowStyle', 'context', 'autoGroupColumnDef', 'groupColumnDef', 'localeText', 'icons', 'datasource',
+        'enterpriseDatasource', 'viewportDatasource', 'groupRowRendererParams', 'aggFuncs',
+        'fullWidthCellRendererParams', 'defaultColGroupDef', 'defaultColDef', 'defaultExportParams', 'columnTypes'
+        //,'cellRenderers','cellEditors'
+    ];
+    ComponentUtil.ARRAY_PROPERTIES = [
+        'slaveGrids', 'alignedGrids', 'rowData',
+        'columnDefs', 'excelStyles', 'pinnedTopRowData', 'pinnedBottomRowData'
+        // deprecated
+    ];
+    ComponentUtil.NUMBER_PROPERTIES = [
+        'rowHeight', 'rowBuffer', 'colWidth', 'headerHeight', 'groupHeaderHeight', 'floatingFiltersHeight',
+        'pivotHeaderHeight', 'pivotGroupHeaderHeight', 'groupDefaultExpanded',
+        'minColWidth', 'maxColWidth', 'viewportRowModelPageSize', 'viewportRowModelBufferSize',
+        'layoutInterval', 'autoSizePadding', 'maxBlocksInCache', 'maxConcurrentDatasourceRequests',
+        'cacheOverflowSize', 'paginationPageSize', 'cacheBlockSize', 'infiniteInitialRowCount',
+        'scrollbarWidth', 'paginationStartPage', 'infiniteBlockSize'
+    ];
+    ComponentUtil.BOOLEAN_PROPERTIES = [
+        'toolPanelSuppressRowGroups', 'toolPanelSuppressValues', 'toolPanelSuppressPivots', 'toolPanelSuppressPivotMode',
+        'suppressRowClickSelection', 'suppressCellSelection', 'suppressHorizontalScroll', 'debug',
+        'enableColResize', 'enableCellExpressions', 'enableSorting', 'enableServerSideSorting',
+        'enableFilter', 'enableServerSideFilter', 'angularCompileRows', 'angularCompileFilters',
+        'angularCompileHeaders', 'groupSuppressAutoColumn', 'groupSelectsChildren',
+        'groupIncludeFooter', 'groupUseEntireRow', 'groupSuppressRow', 'groupSuppressBlankHeader', 'forPrint',
+        'suppressMenuHide', 'rowDeselection', 'unSortIcon', 'suppressMultiSort',
+        'singleClickEdit', 'suppressLoadingOverlay', 'suppressNoRowsOverlay', 'suppressAutoSize',
+        'suppressParentsInRowNodes', 'showToolPanel', 'suppressColumnMoveAnimation', 'suppressMovableColumns',
+        'suppressFieldDotNotation', 'enableRangeSelection',
+        'pivotPanelShow', 'suppressTouch', 'suppressAsyncEvents', 'allowContextMenuWithControlKey',
+        'suppressContextMenu', 'suppressMenuFilterPanel', 'suppressMenuMainPanel', 'suppressMenuColumnPanel',
+        'enableStatusBar', 'alwaysShowStatusBar', 'rememberGroupStateWhenNewData', 'enableCellChangeFlash', 'suppressDragLeaveHidesColumns',
+        'suppressMiddleClickScrolls', 'suppressPreventDefaultOnMouseWheel', 'suppressUseColIdForGroups',
+        'suppressCopyRowsToClipboard', 'pivotMode', 'suppressAggFuncInHeader', 'suppressColumnVirtualisation', 'suppressAggAtRootLevel',
+        'suppressFocusAfterRefresh', 'functionsPassive', 'functionsReadOnly',
+        'animateRows', 'groupSelectsFiltered', 'groupRemoveSingleChildren', 'enableRtl', 'suppressClickEdit',
+        'enableGroupEdit', 'embedFullWidthRows', 'suppressTabbing', 'suppressPaginationPanel', 'floatingFilter',
+        'groupHideOpenParents', 'groupMultiAutoColumn', 'pagination', 'stopEditingWhenGridLosesFocus',
+        'paginationAutoPageSize', 'suppressScrollOnNewData', 'purgeClosedRowNodes', 'cacheQuickFilter',
+        'deltaRowDataMode', 'ensureDomOrder', 'accentedSort', 'pivotTotals', 'suppressChangeDetection',
+        'valueCache', 'valueCacheNeverExpires', 'aggregateOnlyChangedColumns', 'suppressAnimationFrame',
+        'suppressExcelExport', 'suppressCsvExport'
+    ];
+    ComponentUtil.FUNCTION_PROPERTIES = ['headerCellRenderer', 'localeTextFunc', 'groupRowInnerRenderer', 'groupRowInnerRendererFramework',
+        'dateComponent', 'dateComponentFramework', 'groupRowRenderer', 'groupRowRendererFramework', 'isExternalFilterPresent',
+        'getRowHeight', 'doesExternalFilterPass', 'getRowClass', 'getRowStyle', 'getHeaderCellTemplate', 'traverseNode',
+        'getContextMenuItems', 'getMainMenuItems', 'processRowPostCreate', 'processCellForClipboard',
+        'getNodeChildDetails', 'groupRowAggNodes', 'getRowNodeId', 'isFullWidthCell', 'fullWidthCellRenderer',
+        'fullWidthCellRendererFramework', 'doesDataFlower', 'processSecondaryColDef', 'processSecondaryColGroupDef',
+        'getBusinessKeyForNode', 'sendToClipboard', 'navigateToNextCell', 'tabToNextCell',
+        'processCellFromClipboard', 'getDocument', 'postProcessPopup', 'getChildCount'];
+    ComponentUtil.ALL_PROPERTIES = ComponentUtil.ARRAY_PROPERTIES
+        .concat(ComponentUtil.OBJECT_PROPERTIES)
+        .concat(ComponentUtil.STRING_PROPERTIES)
+        .concat(ComponentUtil.NUMBER_PROPERTIES)
+        .concat(ComponentUtil.FUNCTION_PROPERTIES)
+        .concat(ComponentUtil.BOOLEAN_PROPERTIES);
     return ComponentUtil;
 }());
-// all the events are populated in here AFTER this class (at the bottom of the file).
-ComponentUtil.EVENTS = [];
-ComponentUtil.STRING_PROPERTIES = [
-    'sortingOrder', 'rowClass', 'rowSelection', 'overlayLoadingTemplate',
-    'overlayNoRowsTemplate', 'headerCellTemplate', 'quickFilterText', 'rowModelType',
-    'editType'
-];
-ComponentUtil.OBJECT_PROPERTIES = [
-    'rowStyle', 'context', 'groupColumnDef', 'localeText', 'icons', 'datasource', 'enterpriseDatasource', 'viewportDatasource',
-    'groupRowRendererParams', 'aggFuncs', 'fullWidthCellRendererParams', 'defaultColGroupDef', 'defaultColDef', 'defaultExportParams'
-    //,'cellRenderers','cellEditors'
-];
-ComponentUtil.ARRAY_PROPERTIES = [
-    'slaveGrids', 'rowData', 'floatingTopRowData', 'floatingBottomRowData', 'columnDefs', 'excelStyles'
-];
-ComponentUtil.NUMBER_PROPERTIES = [
-    'rowHeight', 'rowBuffer', 'colWidth', 'headerHeight', 'groupHeaderHeight', 'floatingFiltersHeight',
-    'pivotHeaderHeight', 'pivotGroupHeaderHeight', 'groupDefaultExpanded',
-    'minColWidth', 'maxColWidth', 'viewportRowModelPageSize', 'viewportRowModelBufferSize',
-    'layoutInterval', 'autoSizePadding', 'maxBlocksInCache', 'maxConcurrentDatasourceRequests',
-    'cacheOverflowSize', 'paginationPageSize', 'infiniteBlockSize', 'infiniteInitialRowCount',
-    'scrollbarWidth', 'paginationStartPage', 'infiniteBlockSize'
-];
-ComponentUtil.BOOLEAN_PROPERTIES = [
-    'toolPanelSuppressRowGroups', 'toolPanelSuppressValues', 'toolPanelSuppressPivots', 'toolPanelSuppressPivotMode',
-    'suppressRowClickSelection', 'suppressCellSelection', 'suppressHorizontalScroll', 'debug',
-    'enableColResize', 'enableCellExpressions', 'enableSorting', 'enableServerSideSorting',
-    'enableFilter', 'enableServerSideFilter', 'angularCompileRows', 'angularCompileFilters',
-    'angularCompileHeaders', 'groupSuppressAutoColumn', 'groupSelectsChildren',
-    'groupIncludeFooter', 'groupUseEntireRow', 'groupSuppressRow', 'groupSuppressBlankHeader', 'forPrint',
-    'suppressMenuHide', 'rowDeselection', 'unSortIcon', 'suppressMultiSort', 'suppressScrollLag',
-    'singleClickEdit', 'suppressLoadingOverlay', 'suppressNoRowsOverlay', 'suppressAutoSize',
-    'suppressParentsInRowNodes', 'showToolPanel', 'suppressColumnMoveAnimation', 'suppressMovableColumns',
-    'suppressFieldDotNotation', 'enableRangeSelection', 'suppressEnterprise', 'rowGroupPanelShow',
-    'pivotPanelShow', 'suppressTouch', 'suppressAsyncEvents', 'allowContextMenuWithControlKey',
-    'suppressContextMenu', 'suppressMenuFilterPanel', 'suppressMenuMainPanel', 'suppressMenuColumnPanel',
-    'enableStatusBar', 'rememberGroupStateWhenNewData', 'enableCellChangeFlash', 'suppressDragLeaveHidesColumns',
-    'suppressMiddleClickScrolls', 'suppressPreventDefaultOnMouseWheel', 'suppressUseColIdForGroups',
-    'suppressCopyRowsToClipboard', 'pivotMode', 'suppressAggFuncInHeader', 'suppressAggFuncInHeader', 'suppressAggAtRootLevel',
-    'suppressFocusAfterRefresh', 'functionsPassive', 'functionsReadOnly', 'suppressRowHoverClass',
-    'animateRows', 'groupSelectsFiltered', 'groupRemoveSingleChildren', 'enableRtl', 'suppressClickEdit',
-    'enableGroupEdit', 'embedFullWidthRows', 'suppressTabbing', 'suppressPaginationPanel', 'floatingFilter',
-    'groupHideOpenParents', 'groupMultiAutoColumn', 'pagination', 'stopEditingWhenGridLosesFocus',
-    'paginationAutoPageSize', 'suppressScrollOnNewData', 'purgeClosedRowNodes', 'cacheQuickFilter'
-];
-ComponentUtil.FUNCTION_PROPERTIES = ['headerCellRenderer', 'localeTextFunc', 'groupRowInnerRenderer', 'groupRowInnerRendererFramework',
-    'dateComponent', 'dateComponentFramework', 'groupRowRenderer', 'groupRowRendererFramework', 'isScrollLag', 'isExternalFilterPresent',
-    'getRowHeight', 'doesExternalFilterPass', 'getRowClass', 'getRowStyle', 'getHeaderCellTemplate', 'traverseNode',
-    'getContextMenuItems', 'getMainMenuItems', 'processRowPostCreate', 'processCellForClipboard',
-    'getNodeChildDetails', 'groupRowAggNodes', 'getRowNodeId', 'isFullWidthCell', 'fullWidthCellRenderer',
-    'fullWidthCellRendererFramework', 'doesDataFlower', 'processSecondaryColDef', 'processSecondaryColGroupDef',
-    'getBusinessKeyForNode', 'sendToClipboard', 'navigateToNextCell', 'tabToNextCell',
-    'processCellFromClipboard', 'getDocument', 'postProcessPopup'];
-ComponentUtil.ALL_PROPERTIES = ComponentUtil.ARRAY_PROPERTIES
-    .concat(ComponentUtil.OBJECT_PROPERTIES)
-    .concat(ComponentUtil.STRING_PROPERTIES)
-    .concat(ComponentUtil.NUMBER_PROPERTIES)
-    .concat(ComponentUtil.FUNCTION_PROPERTIES)
-    .concat(ComponentUtil.BOOLEAN_PROPERTIES);
 exports.ComponentUtil = ComponentUtil;
 utils_1.Utils.iterateObject(events_1.Events, function (key, value) {
     ComponentUtil.EVENTS.push(value);
 });
 function checkForDeprecated(changes) {
-    if (changes.ready || changes.onReady) {
-        console.warn('ag-grid: as of v3.3 ready event is now called gridReady, so the callback should be onGridReady');
-    }
     if (changes.rowDeselected || changes.onRowDeselected) {
         console.warn('ag-grid: as of v3.4 rowDeselected no longer exists. Please check the docs.');
     }

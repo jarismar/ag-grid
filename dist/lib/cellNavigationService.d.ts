@@ -1,12 +1,12 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { GridRow } from "./entities/gridRow";
 import { GridCell } from "./entities/gridCell";
 export declare class CellNavigationService {
     private columnController;
     private rowModel;
-    private floatingRowModel;
+    private pinnedRowModel;
     private gridOptionsWrapper;
     getNextCellToFocus(key: any, lastCellToFocus: GridCell): GridCell;
     private getCellToLeft(lastCell);

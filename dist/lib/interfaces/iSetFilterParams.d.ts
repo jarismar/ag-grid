@@ -1,6 +1,6 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { IFilterParams } from "./iFilter";
 import { ICellRendererComp, ICellRendererFunc } from "../rendering/cellRenderers/iCellRenderer";
 export interface ISetFilterParams extends IFilterParams {
@@ -16,4 +16,5 @@ export interface ISetFilterParams extends IFilterParams {
     suppressMiniFilter: boolean;
     selectAllOnMiniFilter: boolean;
     comparator?: (a: any, b: any) => number;
+    debounceMs?: number;
 }

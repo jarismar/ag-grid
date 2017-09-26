@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -8,6 +8,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var eventService_1 = require("../eventService");
 var gridOptionsWrapper_1 = require("../gridOptionsWrapper");
+var utils_1 = require("../utils");
 var BeanStub = (function () {
     function BeanStub() {
         this.destroyFunctions = [];
@@ -27,18 +28,18 @@ var BeanStub = (function () {
             this.localEventService.removeEventListener(eventType, listener);
         }
     };
-    BeanStub.prototype.dispatchEventAsync = function (eventType, event) {
+    BeanStub.prototype.dispatchEventAsync = function (event) {
         var _this = this;
-        setTimeout(function () { return _this.dispatchEvent(eventType, event); }, 0);
+        setTimeout(function () { return _this.dispatchEvent(event); }, 0);
     };
-    BeanStub.prototype.dispatchEvent = function (eventType, event) {
+    BeanStub.prototype.dispatchEvent = function (event) {
         if (this.localEventService) {
-            this.localEventService.dispatchEvent(eventType, event);
+            this.localEventService.dispatchEvent(event);
         }
     };
     BeanStub.prototype.addDestroyableEventListener = function (eElement, event, listener) {
         if (eElement instanceof HTMLElement) {
-            eElement.addEventListener(event, listener);
+            utils_1._.addSafePassiveEventListener(eElement, event, listener);
         }
         else if (eElement instanceof gridOptionsWrapper_1.GridOptionsWrapper) {
             eElement.addEventListener(event, listener);

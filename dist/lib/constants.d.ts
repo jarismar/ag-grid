@@ -1,6 +1,6 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 export declare class Constants {
     static STEP_EVERYTHING: number;
     static STEP_FILTER: number;
@@ -8,10 +8,12 @@ export declare class Constants {
     static STEP_MAP: number;
     static STEP_AGGREGATE: number;
     static STEP_PIVOT: number;
-    static STEP_PAGINATE: number;
-    static STEP_SET_HEIGHTS: number;
     static ROW_BUFFER_SIZE: number;
     static LAYOUT_INTERVAL: number;
+    static EXPORT_TYPE_DRAG_COPY: string;
+    static EXPORT_TYPE_CLIPBOARD: string;
+    static EXPORT_TYPE_EXCEL: string;
+    static EXPORT_TYPE_CSV: string;
     static KEY_BACKSPACE: number;
     static KEY_TAB: number;
     static KEY_ENTER: number;
@@ -40,16 +42,15 @@ export declare class Constants {
     static KEY_CTRL_LEFT_NAME: string;
     static KEY_CTRL_RIGHT_NAME: string;
     static KEY_CTRL_DOWN_NAME: string;
-    static ROW_MODEL_TYPE_PAGINATION: string;
-    static ROW_MODEL_TYPE_VIRTUAL_DEPRECATED: string;
     static ROW_MODEL_TYPE_INFINITE: string;
     static ROW_MODEL_TYPE_VIEWPORT: string;
-    static ROW_MODEL_TYPE_NORMAL: string;
+    static ROW_MODEL_TYPE_IN_MEMORY: string;
     static ROW_MODEL_TYPE_ENTERPRISE: string;
+    static DEPRECATED_ROW_MODEL_TYPE_NORMAL: string;
     static ALWAYS: string;
     static ONLY_WHEN_GROUPING: string;
-    static FLOATING_TOP: string;
-    static FLOATING_BOTTOM: string;
+    static PINNED_TOP: string;
+    static PINNED_BOTTOM: string;
     static VERTICAL_SCROLL_KEYS_ID: string;
     static HORIZONTAL_SCROLL_KEYS_ID: string;
     static DIAGONAL_SCROLL_KEYS_ID: string;

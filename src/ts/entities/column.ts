@@ -1,23 +1,21 @@
 import {ColumnGroupChild} from "./columnGroupChild";
 import {OriginalColumnGroupChild} from "./originalColumnGroupChild";
-import {
-    ColDef,
-    AbstractColDef,
-    IAggFunc,
-    IsColumnFunc,
-    IsColumnFuncParams
-} from "./colDef";
+import {AbstractColDef, ColDef, ColSpanParams, IAggFunc, IsColumnFunc, IsColumnFuncParams} from "./colDef";
 import {EventService} from "../eventService";
 import {Utils as _} from "../utils";
 import {Autowired, PostConstruct} from "../context/context";
 import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {ColumnUtils} from "../columnController/columnUtils";
 import {RowNode} from "./rowNode";
-import {ICellRenderer, ICellRendererFunc, ICellRendererComp} from "../rendering/cellRenderers/iCellRenderer";
+import {ICellRendererComp, ICellRendererFunc} from "../rendering/cellRenderers/iCellRenderer";
 import {ICellEditorComp} from "../rendering/cellEditors/iCellEditor";
 import {IFilter} from "../interfaces/iFilter";
 import {IFrameworkFactory} from "../interfaces/iFrameworkFactory";
 import {IEventEmitter} from "../interfaces/iEventEmitter";
+import {ColumnEvent} from "../events";
+import {ColumnApi} from "../columnController/columnController";
+import {GridApi} from "../gridApi";
+
 
 // Wrapper around a user provide column definition. The grid treats the column definition as ready only.
 // This class contains all the runtime information about a column, plus some logic (the definition has no logic).
@@ -45,6 +43,8 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     // + renderedHeaderCell - marks the header with sort icon
     public static EVENT_SORT_CHANGED = 'sortChanged';
 
+    public static EVENT_MENU_VISIBLE_CHANGED = 'menuVisibleChanged';
+
     // + toolpanel, for gui updates
     public static EVENT_ROW_GROUP_CHANGED = 'columnRowGroupChanged';
     // + toolpanel, for gui updates
@@ -61,6 +61,8 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('columnUtils') private columnUtils: ColumnUtils;
     @Autowired('frameworkFactory') private frameworkFactory: IFrameworkFactory;
+    @Autowired('columnApi') private columnApi: ColumnApi;
+    @Autowired('gridApi') private gridApi: GridApi;
 
     private colDef: ColDef;
     private colId: any;
@@ -75,6 +77,7 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     private sort: string;
     private sortedAt: number;
     private moving = false;
+    private menuVisible = false;
 
     private lastLeftPinned: boolean;
     private firstRightPinned: boolean;
@@ -95,8 +98,6 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
 
     private primary: boolean;
 
-    private cellRenderer: {new(): ICellRendererComp} | ICellRendererFunc | string;
-    private floatingCellRenderer: {new(): ICellRendererComp} | ICellRendererFunc | string;
     private cellEditor: {new(): ICellEditorComp} | string;
     private filter: {new(): IFilter} | string;
 
@@ -122,15 +123,13 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     // this is done after constructor as it uses gridOptionsWrapper
     @PostConstruct
     public initialise(): void {
-        this.floatingCellRenderer = this.frameworkFactory.colDefFloatingCellRenderer(this.colDef);
-        this.cellRenderer = this.frameworkFactory.colDefCellRenderer(this.colDef);
         this.cellEditor = this.frameworkFactory.colDefCellEditor(this.colDef);
         this.filter = this.frameworkFactory.colDefFilter(this.colDef);
 
         this.setPinned(this.colDef.pinned);
 
-        var minColWidth = this.gridOptionsWrapper.getMinColWidth();
-        var maxColWidth = this.gridOptionsWrapper.getMaxColWidth();
+        let minColWidth = this.gridOptionsWrapper.getMinColWidth();
+        let maxColWidth = this.gridOptionsWrapper.getMaxColWidth();
 
         if (this.colDef.minWidth) {
             this.minWidth = this.colDef.minWidth;
@@ -146,23 +145,28 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
 
         this.actualWidth = this.columnUtils.calculateColInitialWidth(this.colDef);
 
-        var suppressDotNotation = this.gridOptionsWrapper.isSuppressFieldDotNotation();
+        let suppressDotNotation = this.gridOptionsWrapper.isSuppressFieldDotNotation();
         this.fieldContainsDots = _.exists(this.colDef.field) && this.colDef.field.indexOf('.')>=0 && !suppressDotNotation;
         this.tooltipFieldContainsDots = _.exists(this.colDef.tooltipField) && this.colDef.tooltipField.indexOf('.')>=0 && !suppressDotNotation;
 
         this.validate();
     }
 
-    public getCellRenderer(): {new(): ICellRendererComp} | ICellRendererFunc | string {
-        return this.cellRenderer;
+    public isEmptyGroup(): boolean {
+        return false;
+    }
+
+    public isRowGroupDisplayed(colId: string): boolean {
+        if (_.missing(this.colDef) || _.missing(this.colDef.showRowGroup)) { return false; }
+
+        let showingAllGroups = this.colDef.showRowGroup === true;
+        let showingThisGroup = this.colDef.showRowGroup === colId;
+
+        return showingAllGroups || showingThisGroup;
     }
 
     public getCellEditor(): {new(): ICellEditorComp} | string {
         return this.cellEditor;
-    }
-
-    public getFloatingCellRenderer(): {new(): ICellRendererComp} | ICellRendererFunc | string {
-        return this.floatingCellRenderer;
     }
 
     public getFilter(): {new(): IFilter} | string {
@@ -197,9 +201,55 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
             if (_.exists(this.colDef.rowGroupIndex)) {
                 console.warn('ag-Grid: rowGroupIndex is only valid in ag-Grid-Enterprise');
             }
+            if (_.exists(this.colDef.rowGroup)) {
+                console.warn('ag-Grid: rowGroup is only valid in ag-Grid-Enterprise');
+            }
+            if (_.exists(this.colDef.pivotIndex)) {
+                console.warn('ag-Grid: pivotIndex is only valid in ag-Grid-Enterprise');
+            }
+            if (_.exists(this.colDef.pivot)) {
+                console.warn('ag-Grid: pivot is only valid in ag-Grid-Enterprise');
+            }
         }
+
         if (_.exists(this.colDef.width) && typeof this.colDef.width !== 'number') {
             console.warn('ag-Grid: colDef.width should be a number, not ' + typeof this.colDef.width);
+        }
+
+        if (_.get(this, 'colDef.cellRendererParams.restrictToOneGroup', null)) {
+            console.warn('ag-Grid: Since ag-grid 11.0.0 cellRendererParams.restrictToOneGroup is deprecated. You should use showRowGroup');
+        }
+
+        if (_.get(this, 'colDef.cellRendererParams.keyMap', null)) {
+            console.warn('ag-Grid: Since ag-grid 11.0.0 cellRendererParams.keyMap is deprecated. You should use colDef.keyCreator');
+        }
+
+        if (_.get(this, 'colDef.cellRendererParams.keyMap', null)) {
+            console.warn('ag-Grid: Since ag-grid 11.0.0 cellRendererParams.keyMap is deprecated. You should use colDef.keyCreator');
+        }
+
+        let colDefAny: any = this.colDef;
+        if (colDefAny.floatingCellRenderer) {
+            console.warn('ag-Grid: since v11, floatingCellRenderer is now pinnedRowCellRenderer');
+            this.colDef.pinnedRowCellRenderer = colDefAny.floatingCellRenderer;
+        }
+        if (colDefAny.floatingRendererFramework) {
+            console.warn('ag-Grid: since v11, floatingRendererFramework is now pinnedRowCellRendererFramework');
+            this.colDef.pinnedRowCellRendererFramework = colDefAny.floatingRendererFramework;
+        }
+        if (colDefAny.floatingRendererParams) {
+            console.warn('ag-Grid: since v11, floatingRendererParams is now pinnedRowCellRendererParams');
+            this.colDef.pinnedRowCellRendererParams = colDefAny.floatingRendererParams;
+        }
+        if (colDefAny.floatingValueFormatter) {
+            console.warn('ag-Grid: since v11, floatingValueFormatter is now pinnedRowValueFormatter');
+            this.colDef.pinnedRowValueFormatter = colDefAny.floatingValueFormatter;
+        }
+        if (colDefAny.cellFormatter) {
+            console.warn('ag-Grid: since v12, cellFormatter is now valueFormatter');
+            if (_.missing(this.colDef.valueFormatter)) {
+                this.colDef.valueFormatter = colDefAny.cellFormatter;
+            }
         }
     }
     
@@ -230,8 +280,8 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
 
         // if function, then call the function to find out
         if (typeof this.colDef.suppressNavigable === 'function') {
-            var params = this.createIsColumnFuncParams(rowNode);
-            var suppressNaviableFunc = <IsColumnFunc> this.colDef.suppressNavigable;
+            let params = this.createIsColumnFuncParams(rowNode);
+            let suppressNaviableFunc = <IsColumnFunc> this.colDef.suppressNavigable;
             return suppressNaviableFunc(params);
         }
 
@@ -239,15 +289,35 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     }
 
     public isCellEditable(rowNode: RowNode): boolean {
+
+        // only allow editing of groups if the user has this option enabled
+        if (rowNode.group && !this.gridOptionsWrapper.isEnableGroupEdit()) {
+            return false;
+        }
+
+        return this.isColumnFunc(rowNode, this.colDef.editable);
+    }
+
+    public isSuppressPaste(rowNode: RowNode): boolean {
+        return this.isColumnFunc(rowNode, this.colDef ? this.colDef.suppressPaste : null);
+    }
+
+    public isResizable(): boolean {
+        let enableColResize = this.gridOptionsWrapper.isEnableColResize();
+        let suppressResize = this.colDef && this.colDef.suppressResize;
+        return enableColResize && !suppressResize;
+    }
+
+    private isColumnFunc(rowNode: RowNode, value: boolean | IsColumnFunc): boolean {
         // if boolean set, then just use it
-        if (typeof this.colDef.editable === 'boolean') {
-            return <boolean> this.colDef.editable;
+        if (typeof value === 'boolean') {
+            return <boolean> value;
         }
 
         // if function, then call the function to find out
-        if (typeof this.colDef.editable === 'function') {
-            var params = this.createIsColumnFuncParams(rowNode);
-            var editableFunc = <IsColumnFunc> this.colDef.editable;
+        if (typeof value === 'function') {
+            let params = this.createIsColumnFuncParams(rowNode);
+            let editableFunc = <IsColumnFunc> value;
             return editableFunc(params);
         }
 
@@ -256,7 +326,17 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
 
     public setMoving(moving: boolean) {
         this.moving = moving;
-        this.eventService.dispatchEvent(Column.EVENT_MOVING_CHANGED);
+        this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_MOVING_CHANGED));
+    }
+
+    private createColumnEvent(type: string): ColumnEvent {
+        return {
+            api: this.gridApi,
+            columnApi: this.columnApi,
+            type: type,
+            column: this,
+            columns: [this]
+        };
     }
 
     public isMoving(): boolean {
@@ -270,8 +350,19 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setSort(sort: string): void {
         if (this.sort !== sort) {
             this.sort = sort;
-            this.eventService.dispatchEvent(Column.EVENT_SORT_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_SORT_CHANGED));
         }
+    }
+
+    public setMenuVisible(visible: boolean): void {
+        if (this.menuVisible !== visible) {
+            this.menuVisible = visible;
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_MENU_VISIBLE_CHANGED));
+        }
+    }
+
+    public isMenuVisible(): boolean {
+        return this.menuVisible;
     }
 
     public isSortAscending(): boolean {
@@ -322,7 +413,7 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
         this.oldLeft = this.left;
         if (this.left !== left) {
             this.left = left;
-            this.eventService.dispatchEvent(Column.EVENT_LEFT_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_LEFT_CHANGED));
         }
     }
 
@@ -333,9 +424,9 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setFilterActive(active: boolean): void {
         if (this.filterActive !== active) {
             this.filterActive = active;
-            this.eventService.dispatchEvent(Column.EVENT_FILTER_ACTIVE_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_FILTER_ACTIVE_CHANGED));
         }
-        this.eventService.dispatchEvent(Column.EVENT_FILTER_CHANGED);
+        this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_FILTER_CHANGED));
     }
 
     public setPinned(pinned: string|boolean): void {
@@ -359,14 +450,14 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setFirstRightPinned(firstRightPinned: boolean): void {
         if (this.firstRightPinned !== firstRightPinned) {
             this.firstRightPinned = firstRightPinned;
-            this.eventService.dispatchEvent(Column.EVENT_FIRST_RIGHT_PINNED_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_FIRST_RIGHT_PINNED_CHANGED));
         }
     }
 
     public setLastLeftPinned(lastLeftPinned: boolean): void {
         if (this.lastLeftPinned !== lastLeftPinned) {
             this.lastLeftPinned = lastLeftPinned;
-            this.eventService.dispatchEvent(Column.EVENT_LAST_LEFT_PINNED_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_LAST_LEFT_PINNED_CHANGED));
         }
     }
 
@@ -395,10 +486,10 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     }
 
     public setVisible(visible: boolean): void {
-        var newValue = visible===true;
+        let newValue = visible===true;
         if (this.visible !== newValue) {
             this.visible = newValue;
-            this.eventService.dispatchEvent(Column.EVENT_VISIBLE_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_VISIBLE_CHANGED));
         }
     }
 
@@ -430,10 +521,33 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
         return this.actualWidth;
     }
 
+    public getColSpan(rowNode: RowNode): number {
+        if (_.missing(this.colDef.colSpan)) {
+            return 1;
+        } else {
+            let params: ColSpanParams = {
+                node: rowNode,
+                data: rowNode.data,
+                colDef: this.colDef,
+                column: this,
+                api: this.gridOptionsWrapper.getApi(),
+                columnApi: this.gridOptionsWrapper.getColumnApi(),
+                context: this.gridOptionsWrapper.getContext()
+            };
+            let colSpan = this.colDef.colSpan(params);
+            // colSpan must be number equal to or greater than 1
+            if (colSpan > 1) {
+                return colSpan;
+            } else {
+                return 1;
+            }
+        }
+    }
+
     public setActualWidth(actualWidth: number): void {
         if (this.actualWidth !== actualWidth) {
             this.actualWidth = actualWidth;
-            this.eventService.dispatchEvent(Column.EVENT_WIDTH_CHANGED);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_WIDTH_CHANGED));
         }
     }
 
@@ -460,7 +574,7 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setRowGroupActive(rowGroup: boolean): void {
         if (this.rowGroupActive !== rowGroup) {
             this.rowGroupActive = rowGroup;
-            this.eventService.dispatchEvent(Column.EVENT_ROW_GROUP_CHANGED, this);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_ROW_GROUP_CHANGED));
         }
     }
     
@@ -471,7 +585,7 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setPivotActive(pivot: boolean): void {
         if (this.pivotActive !== pivot) {
             this.pivotActive = pivot;
-            this.eventService.dispatchEvent(Column.EVENT_PIVOT_CHANGED, this);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_PIVOT_CHANGED));
         }
     }
 
@@ -490,7 +604,7 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
     public setValueActive(value: boolean): void {
         if (this.aggregationActive !== value) {
             this.aggregationActive = value;
-            this.eventService.dispatchEvent(Column.EVENT_VALUE_CHANGED, this);
+            this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_VALUE_CHANGED));
         }
     }
 
@@ -508,5 +622,13 @@ export class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEven
 
     public isAllowRowGroup(): boolean {
         return this.colDef.enableRowGroup === true;
+    }
+
+    public getMenuTabs(defaultValues:string[]):string [] {
+        let menuTabs: string[] = this.getColDef().menuTabs;
+        if (menuTabs == null) {
+            menuTabs = defaultValues;
+        }
+        return menuTabs;
     }
 }

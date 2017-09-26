@@ -9,10 +9,10 @@ export interface BaseExportParams{
     columnGroups?:boolean;
     skipFooters?: boolean;
     skipGroups?: boolean;
-    skipFloatingTop?: boolean;
-    skipFloatingBottom?: boolean;
+    skipPinnedTop?: boolean;
+    skipPinnedBottom?: boolean;
     suppressQuotes?: boolean;
-    columnKeys?: (Column|ColDef|string)[]
+    columnKeys?: (string|Column)[]
     fileName?: string;
     allColumns?: boolean;
     onlySelected?: boolean;
@@ -43,7 +43,8 @@ export interface ProcessCellForExportParams {
     column: Column,
     api: GridApi,
     columnApi: ColumnApi,
-    context: any
+    context: any,
+    type: string // clipboard, dragCopy (ctrl+D), export
 }
 
 export interface ProcessHeaderForExportParams {

@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -186,7 +186,7 @@ var PopupService = (function () {
     //so that when the background is clicked, the child is removed again, giving
     //a model look to popups.
     PopupService.prototype.addAsModalPopup = function (eChild, closeOnEsc, closedCallback) {
-        var eBody = document.body;
+        var eBody = this.gridOptionsWrapper.getDocument();
         if (!eBody) {
             console.warn('ag-grid: could not find the body of the document, document.body is empty');
             return;
@@ -259,17 +259,17 @@ var PopupService = (function () {
         }
         return hidePopup;
     };
+    __decorate([
+        context_1.Autowired('gridCore'),
+        __metadata("design:type", gridCore_1.GridCore)
+    ], PopupService.prototype, "gridCore", void 0);
+    __decorate([
+        context_1.Autowired('gridOptionsWrapper'),
+        __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+    ], PopupService.prototype, "gridOptionsWrapper", void 0);
+    PopupService = __decorate([
+        context_1.Bean('popupService')
+    ], PopupService);
     return PopupService;
 }());
-__decorate([
-    context_1.Autowired('gridCore'),
-    __metadata("design:type", gridCore_1.GridCore)
-], PopupService.prototype, "gridCore", void 0);
-__decorate([
-    context_1.Autowired('gridOptionsWrapper'),
-    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
-], PopupService.prototype, "gridOptionsWrapper", void 0);
-PopupService = __decorate([
-    context_1.Bean('popupService')
-], PopupService);
 exports.PopupService = PopupService;

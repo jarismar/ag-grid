@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v10.0.1
+ * @version v13.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -39,6 +39,7 @@ var InfiniteBlock = (function (_super) {
     }
     InfiniteBlock.prototype.createBlankRowNode = function (rowIndex) {
         var rowNode = _super.prototype.createBlankRowNode.call(this, rowIndex);
+        rowNode.uiLevel = 0;
         this.setIndexAndTopOnRowNode(rowNode, rowIndex);
         return rowNode;
     };
@@ -104,24 +105,24 @@ var InfiniteBlock = (function (_super) {
             _this.cacheParams.datasource.getRows(params);
         }, 0);
     };
+    __decorate([
+        context_1.Autowired('gridOptionsWrapper'),
+        __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
+    ], InfiniteBlock.prototype, "gridOptionsWrapper", void 0);
+    __decorate([
+        context_1.Autowired('context'),
+        __metadata("design:type", context_1.Context)
+    ], InfiniteBlock.prototype, "context", void 0);
+    __decorate([
+        context_1.Autowired('rowRenderer'),
+        __metadata("design:type", rowRenderer_1.RowRenderer)
+    ], InfiniteBlock.prototype, "rowRenderer", void 0);
+    __decorate([
+        context_1.PostConstruct,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], InfiniteBlock.prototype, "init", null);
     return InfiniteBlock;
 }(rowNodeBlock_1.RowNodeBlock));
-__decorate([
-    context_1.Autowired('gridOptionsWrapper'),
-    __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
-], InfiniteBlock.prototype, "gridOptionsWrapper", void 0);
-__decorate([
-    context_1.Autowired('context'),
-    __metadata("design:type", context_1.Context)
-], InfiniteBlock.prototype, "context", void 0);
-__decorate([
-    context_1.Autowired('rowRenderer'),
-    __metadata("design:type", rowRenderer_1.RowRenderer)
-], InfiniteBlock.prototype, "rowRenderer", void 0);
-__decorate([
-    context_1.PostConstruct,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], InfiniteBlock.prototype, "init", null);
 exports.InfiniteBlock = InfiniteBlock;

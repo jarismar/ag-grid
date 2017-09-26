@@ -1,9 +1,9 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Component } from "../widgets/component";
 import { DropTarget } from "../dragAndDrop/dragAndDropService";
-import { IComponent } from "../interfaces/iComponent";
+import { IAfterGuiAttachedParams, IComponent } from "../interfaces/iComponent";
 export declare enum HeaderRowType {
     COLUMN_GROUP = 0,
     COLUMN = 1,
@@ -15,15 +15,15 @@ export declare class HeaderRowComp extends Component {
     private context;
     private eventService;
     private filterManager;
-    private componentProvider;
+    private componentRecipes;
     private dept;
     private pinned;
-    private headerElements;
+    private headerComps;
     private eRoot;
     private dropTarget;
     private type;
     constructor(dept: number, type: HeaderRowType, pinned: string, eRoot: HTMLElement, dropTarget: DropTarget);
-    forEachHeaderElement(callback: (comp: IComponent<any>) => void): void;
+    forEachHeaderElement(callback: (comp: IComponent<any, IAfterGuiAttachedParams>) => void): void;
     destroy(): void;
     private removeAndDestroyChildComponents(idsToDestroy);
     private onRowHeightChanged();
@@ -35,7 +35,7 @@ export declare class HeaderRowComp extends Component {
     private onDisplayedColumnsChanged();
     private onVirtualColumnsChanged();
     private isUsingOldHeaderRenderer(column);
-    private createHeaderElement(columnGroupChild);
+    private createHeaderComp(columnGroupChild);
     private createFloatingFilterWrapper(column);
     private createFloatingFilterParams<M, F>(column);
 }

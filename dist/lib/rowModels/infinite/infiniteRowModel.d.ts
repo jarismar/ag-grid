@@ -1,10 +1,11 @@
-// Type definitions for ag-grid v10.0.1
+// Type definitions for ag-grid v13.2.0
 // Project: http://www.ag-grid.com/
-// Definitions by: Niall Crosby <https://github.com/ceolter/>
+// Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "../../entities/rowNode";
-import { IRowModel } from "../../interfaces/iRowModel";
+import { IRowModel, RowBounds } from "../../interfaces/iRowModel";
 import { IDatasource } from "../iDatasource";
 import { BeanStub } from "../../context/beanStub";
+import { RowDataTransaction } from "../inMemory/inMemoryRowModel";
 export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     private gridOptionsWrapper;
     private filterManager;
@@ -12,14 +13,13 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     private selectionController;
     private eventService;
     private context;
+    private gridApi;
+    private columnApi;
     private infiniteCache;
     private rowNodeBlockLoader;
     private datasource;
     private rowHeight;
-    getRowBounds(index: number): {
-        rowTop: number;
-        rowHeight: number;
-    };
+    getRowBounds(index: number): RowBounds;
     init(): void;
     isLastRowFound(): boolean;
     private addEventListeners();
@@ -31,7 +31,9 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     private checkForDeprecated();
     isEmpty(): boolean;
     isRowsToRender(): boolean;
+    getNodesInRangeForSelection(firstInRange: RowNode, lastInRange: RowNode): RowNode[];
     private reset();
+    private createModelUpdatedEvent();
     private resetCache();
     private destroyCache();
     private onCacheUpdated();
@@ -42,9 +44,7 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     getPageFirstRow(): number;
     getPageLastRow(): number;
     getRowCount(): number;
-    insertItemsAtIndex(index: number, items: any[], skipRefresh: boolean): void;
-    removeItems(rowNodes: RowNode[], skipRefresh: boolean): void;
-    addItems(items: any[], skipRefresh: boolean): void;
+    updateRowData(transaction: RowDataTransaction): void;
     isRowPresent(rowNode: RowNode): boolean;
     refreshCache(): void;
     purgeCache(): void;
