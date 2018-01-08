@@ -575,8 +575,8 @@ export class CellComp extends Component {
     }
 
     private processCellClassRules(onApplicableClass:(className:string)=>void, onNotApplicableClass?:(className:string)=>void): void {
-        this.beans.stylingService.processCellClassRules(
-            this.column.getColDef(),
+        this.beans.stylingService.processClassRules(
+            this.column.getColDef().cellClassRules,
             {
                 value: this.value,
                 data: this.rowNode.data,
@@ -663,7 +663,7 @@ export class CellComp extends Component {
         let valueToRender = this.formatValue(this.value);
         let params = this.createCellRendererParams(valueToRender);
 
-        this.cellRenderer = this.beans.componentResolver.createAgGridComponent(this.column.getColDef(), params, this.cellRendererType);
+        this.cellRenderer = <ICellRendererComp>this.beans.componentResolver.createAgGridComponent(this.column.getColDef(), params, this.cellRendererType);
         this.cellRendererGui = this.cellRenderer.getGui();
 
         if (this.cellRendererGui===null || this.cellRendererGui===undefined) {
@@ -967,7 +967,7 @@ export class CellComp extends Component {
 
         let params = this.createCellEditorParams(keyPress, charPress, cellStartedEdit);
 
-        let cellEditor = this.beans.cellEditorFactory.createCellEditor(this.column.getCellEditor(), params);
+        let cellEditor = this.beans.cellEditorFactory.createCellEditor(this.column.getColDef(), params);
 
         return cellEditor;
     }
@@ -1406,7 +1406,7 @@ export class CellComp extends Component {
             let userWantsToCancel = this.cellEditor.isCancelAfterEnd && this.cellEditor.isCancelAfterEnd();
             if (!userWantsToCancel) {
                 let newValue = this.cellEditor.getValue();
-                this.beans.valueService.setValue(this.rowNode, this.column, newValue);
+                this.rowNode.setDataValue(this.column, newValue);
                 this.value = this.getValue();
             }
         }
@@ -1438,7 +1438,12 @@ export class CellComp extends Component {
                     // we know it's a dom element (not a string) because we converted
                     // it after the gui was attached if it was a string.
                     let eCell = <HTMLElement>this.cellRendererGui;
-                    this.getHtmlElement().appendChild(eCell);
+
+                    // can be null if cell was previously null / contained empty string,
+                    // this will result in new value not being rendered.
+                    if(eCell) {
+                        this.getHtmlElement().appendChild(eCell);
+                    }
                 }
             }
         }

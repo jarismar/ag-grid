@@ -1042,7 +1042,6 @@ export class Utils {
         if (this.isFirefox === undefined) {
             let anyWindow = <any> window;
             this.isFirefox = typeof anyWindow.InstallTrigger !== 'undefined';
-            ;
         }
         return this.isFirefox;
     }
@@ -1052,6 +1051,21 @@ export class Utils {
     static getTarget(event: Event): Element {
         let eventNoType = <any> event;
         return eventNoType.target || eventNoType.srcElement;
+    }
+
+    static isElementInEventPath(element: HTMLElement, event: Event): boolean {
+        if (!event || !element) { return false; }
+
+        let sourceElement = _.getTarget(event);
+
+        while (sourceElement) {
+            if (sourceElement===element) {
+                return true;
+            }
+            sourceElement = sourceElement.parentElement;
+        }
+
+        return false;
     }
 
     static forEachSnapshotFirst(list: any[], callback: (item: any)=>void ): void {
