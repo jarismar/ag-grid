@@ -24,7 +24,7 @@ import {
     ColumnValueChangedEvent, ColumnValueChangeRequestEvent, ColumnVisibleEvent, DisplayedColumnsChangedEvent,
     DragStartedEvent, DragStoppedEvent,
     FilterChangedEvent, FilterModifiedEvent,
-    GridColumnsChangedEvent, GridReadyEvent, GridSizeChangedEvent, ItemsAddedEvent, ModelUpdatedEvent,
+    GridColumnsChangedEvent, GridReadyEvent, GridSizeChangedEvent, ModelUpdatedEvent,
     NewColumnsLoadedEvent, PaginationChangedEvent, PinnedRowDataChangedEvent, RangeSelectionChangedEvent,
     RowClickedEvent, RowDataChangedEvent,
     RowDoubleClickedEvent,
@@ -33,8 +33,10 @@ import {
     ViewportChangedEvent,
     VirtualColumnsChangedEvent, VirtualRowRemovedEvent
 } from "../events";
-import {IAfterGuiAttachedParams, IComponent} from "../interfaces/iComponent";
+import {IComponent} from "../interfaces/iComponent";
 import {AgGridRegisteredComponentInput} from "../components/framework/componentProvider";
+import {ILoadingOverlayComp, ILoadingOverlayParams} from "../rendering/overlays/loadingOverlayComponent";
+import {INoRowsOverlayComp, INoRowsOverlayParams} from "../rendering/overlays/noRowsOverlayComponent";
 
 /****************************************************************
  * Don't forget to update ComponentUtil if changing this class. *
@@ -154,7 +156,7 @@ export interface GridOptions {
     maxColWidth?: number;
 
     /****************************************************************
-     * Don't forget to update ComponentUtil if changing this class. GOD DAMN IT!*
+     * Don't forget to update ComponentUtil if changing this class. *
      ****************************************************************/
 
     // just set once
@@ -170,7 +172,7 @@ export interface GridOptions {
     defaultExportParams?: CsvExportParams;
 
     /****************************************************************
-     * Don't forget to update ComponentUtil if changing this class. FOR FUCKS SAKE! *
+     * Don't forget to update ComponentUtil if changing this class. *
      ****************************************************************/
 
     groupSuppressAutoColumn?: boolean;
@@ -191,7 +193,7 @@ export interface GridOptions {
     forPrint?: boolean;
 
     /****************************************************************
-     * Don't forget to update ComponentUtil if changing this class. YOU'VE BEEN WARNED*
+     * Don't forget to update ComponentUtil if changing this class. *
      ****************************************************************/
 
     // changeable, but no immediate impact
@@ -206,7 +208,13 @@ export interface GridOptions {
     overlayLoadingTemplate?: string;
     overlayNoRowsTemplate?: string;
     rowHeight?: number;
-    headerCellTemplate?: string;
+    detailRowHeight?: number;
+
+    masterDetail?: boolean;
+    isRowMaster?: IsRowMaster;
+    detailCellRenderer?: {new(): ICellRendererComp} | ICellRendererFunc | string;
+    detailCellRendererFramework?: any;
+    detailCellRendererParams?: any;
 
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. *
@@ -256,15 +264,18 @@ export interface GridOptions {
     tabToNextCell?: (params: TabToNextCellParams)=>GridCellDef;
     getDocument?: ()=> Document;
 
+    loadingOverlayComponent?: {new(): ILoadingOverlayComp} | string;
+    loadingOverlayComponentFramework?: any;
+    noRowsOverlayComponent?: {new(): INoRowsOverlayComp} | string;
+    noRowsOverlayComponentFramework?: any;
+
     fullWidthCellRenderer?: {new(): ICellRendererComp} | ICellRendererFunc | string;
     fullWidthCellRendererFramework?: any;
     fullWidthCellRendererParams?: any;
     isFullWidthCell?(rowNode: RowNode): boolean;
 
-    headerCellRenderer?: any;
     groupRowAggNodes?(nodes: RowNode[]): any;
     getBusinessKeyForNode?(node: RowNode): string;
-    getHeaderCellTemplate?: (params: any) => string | HTMLElement;
     getNodeChildDetails?: GetNodeChildDetails;
     getDataPath?: GetDataPath;
     treeData?: boolean;
@@ -353,6 +364,10 @@ export interface GetDataPath {
 
 export interface GetNodeChildDetails {
     (dataItem: any): NodeChildDetails;
+}
+
+export interface IsRowMaster {
+    (dataItem: any): boolean;
 }
 
 export interface NodeChildDetails {

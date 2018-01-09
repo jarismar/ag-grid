@@ -64,6 +64,9 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
 
     private cellIsBlank: boolean;
 
+    // keep reference to this, so we can remove again when indent changes
+    private indentClass: string;
+
     constructor() {
         super(GroupCellRenderer.TEMPLATE);
     }
@@ -86,14 +89,14 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         this.addExpandAndContract();
         this.addCheckboxIfNeeded();
         this.addValueElement();
-        this.addPadding();
+        this.setupIndent();
     }
 
     // if we are doing embedded full width rows, we only show the renderer when
     // in the body, or if pinning in the pinned section, or if pinning and RTL,
     // in the right section. otherwise we would have the cell repeated in each section.
     private isEmbeddedRowMismatch(): boolean {
-        if (this.gridOptionsWrapper.isEmbedFullWidthRows()) {
+        if (this.params.fullWidth && this.gridOptionsWrapper.isEmbedFullWidthRows()) {
 
             let pinnedLeftCell = this.params.pinned === Column.PINNED_LEFT;
             let pinnedRightCell = this.params.pinned === Column.PINNED_RIGHT;
@@ -117,29 +120,43 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         }
     }
 
-    private setPadding(): void {
+    private setIndent(): void {
 
-        if (this.gridOptionsWrapper.isGroupHideOpenParents()) { return; }
+        if (this.gridOptionsWrapper.isGroupHideOpenParents()) {
+            return;
+        }
 
         let params = this.params;
         let rowNode: RowNode = params.node;
 
-        let paddingPx: number;
+        // let paddingPx: number;
+        let paddingCount = rowNode.uiLevel;
 
-        // never any padding on top level nodes
-        if (rowNode.uiLevel<=0) {
-            paddingPx = 0;
-        } else {
-            let paddingFactor: number = (params.padding >= 0) ? params.padding : this.gridOptionsWrapper.getGroupPaddingSize();
-            paddingPx = rowNode.uiLevel * paddingFactor;
+        let pivotModeAndLeafGroup = this.columnController.isPivotMode() && params.node.leafGroup;
 
-            let reducedLeafNode = this.columnController.isPivotMode() && params.node.leafGroup;
-            if (rowNode.footer) {
-                paddingPx += this.gridOptionsWrapper.getFooterPaddingAddition();
-            } else if (!rowNode.isExpandable() || reducedLeafNode) {
-                paddingPx += this.gridOptionsWrapper.getLeafNodePaddingAddition();
-            }
+        let notExpandable = !rowNode.isExpandable();
+        if (rowNode.footer || notExpandable || pivotModeAndLeafGroup) {
+            paddingCount += 1;
         }
+
+        let userProvidedPaddingPixelsTheDeprecatedWay = params.padding >= 0;
+        if (userProvidedPaddingPixelsTheDeprecatedWay) {
+            this.setPaddingDeprecatedWay(paddingCount, params.padding);
+            return;
+        }
+
+        if (this.indentClass) {
+            this.removeCssClass(this.indentClass);
+        }
+
+        this.indentClass = 'ag-row-group-indent-' + paddingCount;
+        this.addCssClass(this.indentClass);
+    }
+
+    private setPaddingDeprecatedWay(paddingCount: number, padding: number): void {
+        _.doOnce( () => console.warn('ag-Grid: since v14.2, configuring padding for groupCellRenderer should be done with Sass variables and themes. Please see the ag-Grid documentation.'), 'groupCellRenderer->doDeprecatedWay');
+
+        let paddingPx = paddingCount * padding;
 
         if (this.gridOptionsWrapper.isEnableRtl()) {
             // if doing rtl, padding is on the right
@@ -150,7 +167,7 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         }
     }
 
-    private addPadding(): void {
+    private setupIndent(): void {
 
         // only do this if an indent - as this overwrites the padding that
         // the theme set, which will make things look 'not aligned' for the
@@ -159,8 +176,8 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         let suppressPadding = this.params.suppressPadding;
 
         if (!suppressPadding) {
-            this.addDestroyableEventListener(node, RowNode.EVENT_UI_LEVEL_CHANGED, this.setPadding.bind(this));
-            this.setPadding();
+            this.addDestroyableEventListener(node, RowNode.EVENT_UI_LEVEL_CHANGED, this.setIndent.bind(this));
+            this.setIndent();
         }
     }
 
@@ -242,7 +259,7 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
 
     private createLeafCell(): void {
         if (_.exists(this.params.value)) {
-            this.eValue.innerHTML = this.params.value;
+            this.eValue.innerHTML = this.params.valueFormatted ? this.params.valueFormatted : this.params.value;
         }
     }
 
@@ -262,8 +279,8 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
                 && !rowNode.footer
                 // pinned rows cannot be selected
                 && !rowNode.rowPinned
-                // flowers cannot be selected
-                && !rowNode.flower;
+                // details cannot be selected
+                && !rowNode.detail;
         if (checkboxNeeded) {
             let cbSelectionComponent = new CheckboxSelectionComponent();
             this.context.wireBean(cbSelectionComponent);
@@ -292,12 +309,19 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         // because we don't show the expand / contract when there are no children, we need to check every time
         // the number of children change.
         this.addDestroyableEventListener(this.displayedGroup, RowNode.EVENT_ALL_CHILDREN_COUNT_CHANGED,
-            this.showExpandAndContractIcons.bind(this));
+            this.onAllChildrenCountChanged.bind(this));
 
         // if editing groups, then double click is to start editing
         if (!this.gridOptionsWrapper.isEnableGroupEdit() && this.isExpandable()) {
             this.addDestroyableEventListener(eGroupCell, 'dblclick', this.onCellDblClicked.bind(this));
         }
+    }
+
+    private onAllChildrenCountChanged(): void {
+        // maybe if no children now, we should hide the expand / contract icons
+        this.showExpandAndContractIcons();
+        // if we have no children, this impacts the indent
+        this.setIndent();
     }
 
     private onKeyDown(event: KeyboardEvent): void {
@@ -349,18 +373,21 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         }
     }
 
-    public onExpandClicked(): void {
+    public onExpandClicked(mouseEvent: MouseEvent): void {
+        if (_.isStopPropagationForAgGrid(mouseEvent)) { return; }
         this.onExpandOrContract();
     }
 
-    public onCellDblClicked(event: MouseEvent): void {
+    public onCellDblClicked(mouseEvent: MouseEvent): void {
+        if (_.isStopPropagationForAgGrid(mouseEvent)) { return; }
+
         // we want to avoid acting on double click events on the expand / contract icon,
         // as that icons already has expand / collapse functionality on it. otherwise if
         // the icon was double clicked, we would get 'click', 'click', 'dblclick' which
         // is open->close->open, however double click should be open->close only.
         let targetIsExpandIcon
-            = _.isElementInEventPath(this.eExpanded, event)
-            || _.isElementInEventPath(this.eContracted, event);
+            = _.isElementInEventPath(this.eExpanded, mouseEvent)
+            || _.isElementInEventPath(this.eContracted, mouseEvent);
 
         if (!targetIsExpandIcon) {
             this.onExpandOrContract();

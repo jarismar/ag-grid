@@ -393,10 +393,10 @@ export class FilterManager {
     }
 
     private createFilterInstance(column: Column, $scope:any): Promise<IFilterComp> {
-        let defaultFilter:string = 'textColumnFilter';
+        let defaultFilter:string = 'agTextColumnFilter';
 
         if (this.gridOptionsWrapper.isEnterprise()) {
-            defaultFilter = 'setColumnFilter';
+            defaultFilter = 'agSetColumnFilter';
         }
         let sanitisedColDef:ColDef = _.cloneObject(column.getColDef());
 
@@ -405,11 +405,6 @@ export class FilterManager {
             api: this.gridApi,
             columnApi: this.columnApi
         };
-
-        this.translateFilter(sanitisedColDef, 'set');
-        this.translateFilter(sanitisedColDef, 'text');
-        this.translateFilter(sanitisedColDef, 'number');
-        this.translateFilter(sanitisedColDef, 'date');
 
         let filterChangedCallback = this.onFilterChanged.bind(this);
         let filterModifiedCallback = () => this.eventService.dispatchEvent(event);
@@ -438,13 +433,6 @@ export class FilterManager {
         );
     }
 
-    private translateFilter (target:ColDef, toTranslate:string):void {
-        if (target.filter === toTranslate) {
-            target.filter = `${toTranslate}ColumnFilter`;
-        }
-
-    }
-
     private createFilterWrapper(column: Column): FilterWrapper {
         let filterWrapper: FilterWrapper = {
             column: column,
@@ -453,9 +441,9 @@ export class FilterManager {
             guiPromise: Promise.external<HTMLElement>()
         };
 
-        let $scope:any = this.gridOptionsWrapper.isAngularCompileFilters() ? this.$scope.$new() : null;
+        filterWrapper.scope = this.gridOptionsWrapper.isAngularCompileFilters() ? this.$scope.$new() : null;
 
-        filterWrapper.filterPromise = this.createFilterInstance(column, $scope);
+        filterWrapper.filterPromise = this.createFilterInstance(column, filterWrapper.scope);
 
         this.putIntoGui(filterWrapper);
 
@@ -479,11 +467,12 @@ export class FilterManager {
             eFilterGui.appendChild(guiFromFilter);
 
             if (filterWrapper.scope) {
-                filterWrapper.guiPromise.resolve(this.$compile(eFilterGui)(filterWrapper.scope)[0]);
-            } else {
-                filterWrapper.guiPromise.resolve(eFilterGui);
+                this.$compile(eFilterGui)(filterWrapper.scope);
+                setTimeout( () => filterWrapper.scope.$apply(), 0);
             }
-        })
+
+            filterWrapper.guiPromise.resolve(eFilterGui);
+        });
     }
 
     private onNewColumnsLoaded(): void {
@@ -506,6 +495,9 @@ export class FilterManager {
                 filter.destroy();
             }
             filterWrapper.column.setFilterActive(false);
+            if (filterWrapper.scope) {
+                filterWrapper.scope.$destroy();
+            }
             delete this.allFilters[filterWrapper.column.getColId()];
         })
     }

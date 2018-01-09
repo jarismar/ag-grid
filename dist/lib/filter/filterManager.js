@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v14.0.1
+ * @version v15.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -340,9 +340,9 @@ var FilterManager = (function () {
     };
     FilterManager.prototype.createFilterInstance = function (column, $scope) {
         var _this = this;
-        var defaultFilter = 'textColumnFilter';
+        var defaultFilter = 'agTextColumnFilter';
         if (this.gridOptionsWrapper.isEnterprise()) {
-            defaultFilter = 'setColumnFilter';
+            defaultFilter = 'agSetColumnFilter';
         }
         var sanitisedColDef = utils_1.Utils.cloneObject(column.getColDef());
         var event = {
@@ -350,10 +350,6 @@ var FilterManager = (function () {
             api: this.gridApi,
             columnApi: this.columnApi
         };
-        this.translateFilter(sanitisedColDef, 'set');
-        this.translateFilter(sanitisedColDef, 'text');
-        this.translateFilter(sanitisedColDef, 'number');
-        this.translateFilter(sanitisedColDef, 'date');
         var filterChangedCallback = this.onFilterChanged.bind(this);
         var filterModifiedCallback = function () { return _this.eventService.dispatchEvent(event); };
         var params = {
@@ -371,11 +367,6 @@ var FilterManager = (function () {
             doesRowPassOtherFilter: _this.doesRowPassOtherFilters.bind(_this, filter),
         }); });
     };
-    FilterManager.prototype.translateFilter = function (target, toTranslate) {
-        if (target.filter === toTranslate) {
-            target.filter = toTranslate + "ColumnFilter";
-        }
-    };
     FilterManager.prototype.createFilterWrapper = function (column) {
         var filterWrapper = {
             column: column,
@@ -383,8 +374,8 @@ var FilterManager = (function () {
             scope: null,
             guiPromise: utils_1.Promise.external()
         };
-        var $scope = this.gridOptionsWrapper.isAngularCompileFilters() ? this.$scope.$new() : null;
-        filterWrapper.filterPromise = this.createFilterInstance(column, $scope);
+        filterWrapper.scope = this.gridOptionsWrapper.isAngularCompileFilters() ? this.$scope.$new() : null;
+        filterWrapper.filterPromise = this.createFilterInstance(column, filterWrapper.scope);
         this.putIntoGui(filterWrapper);
         return filterWrapper;
     };
@@ -403,11 +394,10 @@ var FilterManager = (function () {
             }
             eFilterGui.appendChild(guiFromFilter);
             if (filterWrapper.scope) {
-                filterWrapper.guiPromise.resolve(_this.$compile(eFilterGui)(filterWrapper.scope)[0]);
+                _this.$compile(eFilterGui)(filterWrapper.scope);
+                setTimeout(function () { return filterWrapper.scope.$apply(); }, 0);
             }
-            else {
-                filterWrapper.guiPromise.resolve(eFilterGui);
-            }
+            filterWrapper.guiPromise.resolve(eFilterGui);
         });
     };
     FilterManager.prototype.onNewColumnsLoaded = function () {
@@ -429,6 +419,9 @@ var FilterManager = (function () {
                 filter.destroy();
             }
             filterWrapper.column.setFilterActive(false);
+            if (filterWrapper.scope) {
+                filterWrapper.scope.$destroy();
+            }
             delete _this.allFilters[filterWrapper.column.getColId()];
         });
     };

@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v14.0.1
+// Type definitions for ag-grid v15.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { GridOptionsWrapper } from "./gridOptionsWrapper";
@@ -14,8 +14,10 @@ export declare class Utils {
     private static isEdge;
     private static isChrome;
     private static isFirefox;
+    private static isIPad;
     private static PRINTABLE_CHARACTERS;
-    static mimicAsync(callback: Function): void;
+    private static doOnceFlags;
+    static doOnce(func: () => void, key: string): void;
     static areEventsNear(e1: MouseEvent | Touch, e2: MouseEvent | Touch, pixelCount: number): boolean;
     static shallowCompare(arr1: any[], arr2: any[]): boolean;
     static getNameOfClass(TheClass: any): string;
@@ -115,6 +117,7 @@ export declare class Utils {
     static isBrowserSafari(): boolean;
     static isBrowserChrome(): boolean;
     static isBrowserFirefox(): boolean;
+    static isUserAgentIPad(): boolean;
     static getTarget(event: Event): Element;
     static isElementInEventPath(element: HTMLElement, event: Event): boolean;
     static createEventPath(event: Event): EventTarget[];
@@ -238,6 +241,8 @@ export declare class Utils {
      * https://stackoverflow.com/questions/24004791/can-someone-explain-the-debounce-function-in-javascript
      */
     static debounce(func: () => void, wait: number, immediate?: boolean): () => void;
+    static stopPropagationForAgGrid(event: Event): void;
+    static isStopPropagationForAgGrid(event: Event): boolean;
     static executeInAWhile(funcs: Function[]): void;
     static executeNextVMTurn(funcs: Function[]): void;
     static executeAfter(funcs: Function[], millis: number): void;
@@ -248,6 +253,7 @@ export declare class Utils {
     static passiveEvents: string[];
     static addSafePassiveEventListener(eElement: HTMLElement, event: string, listener: (event?: any) => void): void;
     static camelCaseToHumanText(camelCase: string): string;
+    static message(msg: string): void;
     static sortRowNodesByOrder(rowNodes: RowNode[], rowNodeOrder: {
         [id: string]: number;
     }): void;

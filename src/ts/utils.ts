@@ -1,9 +1,12 @@
 import {GridOptionsWrapper} from "./gridOptionsWrapper";
 import {Column} from "./entities/column";
 import {RowNode} from "./entities/rowNode";
+import {Constants} from "./constants";
 
 let FUNCTION_STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 let FUNCTION_ARGUMENT_NAMES = /([^\s,]+)/g;
+
+let AG_GRID_STOP_PROPAGATION = '__ag_Grid_Stop_Propagation';
 
 // util class, only used when debugging, for printing time to console
 export class Timer {
@@ -41,10 +44,17 @@ export class Utils {
     private static isChrome: boolean;
     private static isFirefox: boolean;
 
-    private static PRINTABLE_CHARACTERS = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!"£$%^&*()_+-=[];\'#,./\|<>?:@~{}';
+    private static isIPad: boolean;
 
-    static mimicAsync(callback: Function): void {
-        callback();
+    private static PRINTABLE_CHARACTERS = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!"£$%^&*()_+-=[];\'#,./\\|<>?:@~{}';
+
+    private static doOnceFlags: {[key: string]: boolean} = {};
+
+    // if the key was passed before, then doesn't execute the func
+    static doOnce(func: ()=>void, key: string ) {
+        if (this.doOnceFlags[key]) { return; }
+        func();
+        this.doOnceFlags[key] = true;
     }
 
     // returns true if the event is close to the original event by X pixels either vertically or horizontally.
@@ -382,6 +392,15 @@ export class Utils {
 
     static isEventFromPrintableCharacter(event: KeyboardEvent): boolean {
         let pressedChar = String.fromCharCode(event.charCode);
+
+        // newline is an exception, as it counts as a printable character, but we don't
+        // want to start editing when it is pressed. without this check, if user is in chrome
+        // and editing a cell, and they press ctrl+enter, the cell stops editing, and then
+        // starts editing again with a blank value (two 'key down' events are fired). to
+        // test this, remove the line below, edit a cell in chrome and hit ctrl+enter while editing.
+        // https://ag-grid.atlassian.net/browse/AG-605
+        if (this.isKeyPressed(event, Constants.KEY_NEW_LINE)) { return false; }
+
         if (_.exists(event.key)) {
             // modern browser will implement key, so we return if key is length 1, eg if it is 'a' for the
             // a key, or '2' for the '2' key. non-printable characters have names, eg 'Enter' or 'Backspace'.
@@ -1041,6 +1060,14 @@ export class Utils {
         return this.isFirefox;
     }
 
+    static isUserAgentIPad(): boolean {
+        if (this.isIPad === undefined) {
+            // taken from https://davidwalsh.name/detect-ipad
+            this.isIPad = navigator.userAgent.match(/iPad/i) != null;
+        }
+        return this.isIPad;
+    }
+
     // srcElement is only available in IE. In all other browsers it is target
     // http://stackoverflow.com/questions/5301643/how-can-i-make-event-srcelement-work-in-firefox-and-what-does-it-mean
     static getTarget(event: Event): Element {
@@ -1430,6 +1457,20 @@ export class Utils {
         };
     };
 
+    // a user once raised an issue - they said that when you opened a popup (eg context menu)
+    // and then clicked on a selection checkbox, the popup wasn't closed. this is because the
+    // popup listens for clicks on the body, however ag-grid WAS stopping propagation on the
+    // checkbox clicks (so the rows didn't pick them up as row selection selection clicks).
+    // to get around this, we have a pattern to stop propagation for the purposes of ag-Grid,
+    // but we still let the event pass back to teh body.
+    static stopPropagationForAgGrid(event: Event): void {
+        (<any>event)[AG_GRID_STOP_PROPAGATION] = true;
+    }
+
+    static isStopPropagationForAgGrid(event: Event): boolean {
+        return (<any>event)[AG_GRID_STOP_PROPAGATION] === true;
+    }
+
     static executeInAWhile(funcs: Function[]): void {
         this.executeAfter(funcs, 400);
     }
@@ -1475,7 +1516,7 @@ export class Utils {
     static passiveEvents: string[] = ['touchstart', 'touchend', 'touchmove', 'touchcancel'];
 
     static addSafePassiveEventListener(eElement: HTMLElement, event: string, listener: (event?: any) => void) {
-        eElement.addEventListener(event, listener, <any>(Utils.passiveEvents.indexOf(event) > -1 ? {passive: true} : null));
+        eElement.addEventListener(event, listener, <any>(Utils.passiveEvents.indexOf(event) > -1 ? {passive: true} : undefined));
     }
 
     static camelCaseToHumanText(camelCase: string): string {
@@ -1489,6 +1530,28 @@ export class Utils {
         return words.map(word => word.substring(0, 1).toUpperCase() + ((word.length > 1) ? word.substring(1, word.length) : '')).join(' ');
     }
 
+    // displays a message to the browser. this is useful in iPad, where you can't easily see the console.
+    // so the javascript code can use this to give feedback. this is NOT intended to be called in production.
+    // it is intended the ag-Grid developer calls this to troubleshoot, but then takes out the calls before
+    // checking in.
+    static message(msg: string): void {
+        let eMessage = document.createElement('div');
+        eMessage.innerHTML = msg;
+        let eBox = document.querySelector('#__ag__message');
+        if (!eBox) {
+            let template = `<div id="__ag__message" style="display: inline-block; position: absolute; top: 0px; left: 0px; color: white; background-color: black; z-index: 20; padding: 2px; border: 1px solid darkred; height: 200px; overflow-y: auto;"></div>`;
+            eBox = this.loadTemplate(template);
+            if (document.body) {
+                document.body.appendChild(eBox);
+            }
+        }
+        eBox.appendChild(eMessage);
+    }
+
+    // gets called by: a) InMemoryRowNodeManager and b) GroupStage to do sorting.
+    // when in InMemoryRowNodeManager we always have indexes (as this sorts the items the
+    // user provided) but when in GroupStage, the nodes can contain filler nodes that
+    // don't have order id's
     static sortRowNodesByOrder(rowNodes: RowNode[], rowNodeOrder: { [id: string]: number }): void {
         if (!rowNodes) {
             return;
@@ -1496,7 +1559,30 @@ export class Utils {
         rowNodes.sort((nodeA: RowNode, nodeB: RowNode) => {
             let positionA = rowNodeOrder[nodeA.id];
             let positionB = rowNodeOrder[nodeB.id];
-            return positionA - positionB;
+
+            let aHasIndex = positionA !== undefined;
+            let bHasIndex = positionB !== undefined;
+
+            let bothNodesAreUserNodes = aHasIndex && bHasIndex;
+            let bothNodesAreFillerNodes = !aHasIndex && !bHasIndex;
+
+            if (bothNodesAreUserNodes) {
+                // when comparing two nodes the user has provided, they always
+                // have indexes
+                return positionA - positionB;
+            } else if (bothNodesAreFillerNodes) {
+                // when comparing two filler nodes, we have no index to compare them
+                // against, however we want this sorting to be deterministic, so that
+                // the rows don't jump around as the user does delta updates. so we
+                // want the same sort result. so we use the id - which doesn't make sense
+                // from a sorting point of view, but does give consistent behaviour between
+                // calls. otherwise groups jump around as delta updates are done.
+                return nodeA.id > nodeB.id ? 1 : -1;
+            } else if (aHasIndex) {
+                return 1;
+            } else {
+                return -1;
+            }
         });
     }
 }

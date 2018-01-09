@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v14.0.1
+ * @version v15.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -63,8 +63,9 @@ var FlattenStage = (function () {
         }
         var groupSuppressRow = this.gridOptionsWrapper.isGroupSuppressRow();
         var hideOpenParents = this.gridOptionsWrapper.isGroupHideOpenParents();
+        // these two are mutually exclusive, so if first set, we don't set the second
         var groupRemoveSingleChildren = this.gridOptionsWrapper.isGroupRemoveSingleChildren();
-        var groupRemoveLowestSingleChildren = this.gridOptionsWrapper.isGroupRemoveLowestSingleChildren();
+        var groupRemoveLowestSingleChildren = !groupRemoveSingleChildren && this.gridOptionsWrapper.isGroupRemoveLowestSingleChildren();
         for (var i = 0; i < rowsToFlatten.length; i++) {
             var rowNode = rowsToFlatten[i];
             // check all these cases, for working out if this row should be included in the final mapped list
@@ -87,11 +88,12 @@ var FlattenStage = (function () {
                 continue;
             }
             if (isParent) {
+                var excludedParent = isRemovedSingleChildrenGroup || isRemovedLowestSingleChildrenGroup;
                 // we traverse the group if it is expended, however we always traverse if the parent node
                 // was removed (as the group will never be opened if it is not displayed, we show the children instead)
-                if (rowNode.expanded || isRemovedSingleChildrenGroup) {
+                if (rowNode.expanded || excludedParent) {
                     // if the parent was excluded, then ui level is that of the parent
-                    var uiLevelForChildren = isRemovedSingleChildrenGroup ? uiLevel : uiLevel + 1;
+                    var uiLevelForChildren = excludedParent ? uiLevel : uiLevel + 1;
                     this.recursivelyAddToRowsToDisplay(rowNode.childrenAfterSort, result, nextRowTop, skipLeafNodes, uiLevelForChildren);
                     // put a footer in if user is looking for it
                     if (this.gridOptionsWrapper.isGroupIncludeFooter()) {
@@ -102,9 +104,9 @@ var FlattenStage = (function () {
                 else {
                 }
             }
-            else if (rowNode.canFlower && rowNode.expanded) {
-                var flowerNode = this.createFlowerNode(rowNode);
-                this.addRowNodeToRowsToDisplay(flowerNode, result, nextRowTop, uiLevel);
+            else if (rowNode.master && rowNode.expanded) {
+                var detailNode = this.createDetailNode(rowNode);
+                this.addRowNodeToRowsToDisplay(detailNode, result, nextRowTop, uiLevel);
             }
         }
     };
@@ -143,22 +145,25 @@ var FlattenStage = (function () {
         footerNode.sibling = groupNode;
         groupNode.sibling = footerNode;
     };
-    FlattenStage.prototype.createFlowerNode = function (parentNode) {
-        if (utils_1.Utils.exists(parentNode.childFlower)) {
-            return parentNode.childFlower;
+    FlattenStage.prototype.createDetailNode = function (masterNode) {
+        if (utils_1.Utils.exists(masterNode.detailNode)) {
+            return masterNode.detailNode;
         }
         else {
-            var flowerNode = new rowNode_1.RowNode();
-            this.context.wireBean(flowerNode);
-            flowerNode.flower = true;
-            flowerNode.parent = parentNode;
-            if (utils_1.Utils.exists(parentNode.id)) {
-                flowerNode.id = 'flowerNode_' + parentNode.id;
+            var detailNode = new rowNode_1.RowNode();
+            this.context.wireBean(detailNode);
+            detailNode.detail = true;
+            // flower was renamed to 'detail', but keeping for backwards compatibility
+            detailNode.flower = detailNode.detail;
+            detailNode.parent = masterNode;
+            if (utils_1.Utils.exists(masterNode.id)) {
+                detailNode.id = 'detail_' + masterNode.id;
             }
-            flowerNode.data = parentNode.data;
-            flowerNode.level = parentNode.level + 1;
-            parentNode.childFlower = flowerNode;
-            return flowerNode;
+            detailNode.data = masterNode.data;
+            detailNode.level = masterNode.level + 1;
+            masterNode.detailNode = detailNode;
+            masterNode.childFlower = masterNode.detailNode; // for backwards compatibility
+            return detailNode;
         }
     };
     __decorate([

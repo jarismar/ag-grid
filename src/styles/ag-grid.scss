@@ -1,6 +1,3 @@
-// nib is important, as it gets stylus to include variations on the CSS for browsers.
-// eg 'user-select' gets compiled to versions '-webkit-user-select, -moz-user-select, -ms-user-select'
-//@import 'nib';
 // if we don't do this, then the width and height of the grid would be ignored,
 // as there is no default display for the element ag-grid-a2 (as it's not a natural dom element)
 ag-grid-angular {
@@ -684,8 +681,10 @@ ag-grid-aurelia {
         border-left: 1px solid transparent;
     }
 }
+
 .ag-filter-filter {
     width: 100%;
+    box-sizing: border-box;
 }
 .ag-floating-filter-body {
     input {
@@ -774,13 +773,16 @@ ag-grid-aurelia {
     }
 }
 
-$ag-icons-path: './icons/' !default;
+$icons-path: './icons/' !default;
+
+@if variable-exists(ag-icons-path) { $icons-path: $ag-icons-path; }
+
 $ag-icons-filter: 'initial' !default;
 
 @mixin icon-background($icon) {
     width: 12px;
     height: 12px;
-    background: transparent url('#{$ag-icons-path}#{$icon}.svg') center no-repeat;
+    background: transparent url('#{$icons-path}#{$icon}.svg') center no-repeat;
     background-size: 12px 12px;
     filter: $ag-icons-filter;
 }
@@ -802,4 +804,27 @@ $icons: aggregation arrows asc checkbox-checked-readonly checkbox-checked checkb
     z-index: 1;
     width: 100%;
     padding: 5px;
+}
+
+.ag-details-row {
+    width: 100%;
+    height: 100%;
+}
+
+.ag-details-grid {
+    width: 100%;
+    height: 100%;
+}
+
+
+$toolpanel-indent-size: 10px !default;
+$row-group-indent-size: 10px !default;
+
+// Default values for themes that do not use the mixins
+@for $i from 1 to 50 {
+    .ag-ltr .ag-toolpanel-indent-#{$i} { padding-left: $i * $toolpanel-indent-size; }
+    .ag-rtl .ag-toolpanel-indent-#{$i} { padding-right: $i * $toolpanel-indent-size; }
+
+    .ag-ltr .ag-row-group-indent-#{$i} { padding-left: $i * $row-group-indent-size; }
+    .ag-rtl .ag-row-group-indent-#{$i} { padding-right: $i * $row-group-indent-size; }
 }

@@ -63,8 +63,10 @@ export class FlattenStage implements IRowNodeStage {
 
         let groupSuppressRow = this.gridOptionsWrapper.isGroupSuppressRow();
         let hideOpenParents = this.gridOptionsWrapper.isGroupHideOpenParents();
+
+        // these two are mutually exclusive, so if first set, we don't set the second
         let groupRemoveSingleChildren = this.gridOptionsWrapper.isGroupRemoveSingleChildren();
-        let groupRemoveLowestSingleChildren = this.gridOptionsWrapper.isGroupRemoveLowestSingleChildren();
+        let groupRemoveLowestSingleChildren = !groupRemoveSingleChildren && this.gridOptionsWrapper.isGroupRemoveLowestSingleChildren();
 
         for (let i = 0; i < rowsToFlatten.length; i++) {
             let rowNode = rowsToFlatten[i];
@@ -92,12 +94,15 @@ export class FlattenStage implements IRowNodeStage {
             if (skipLeafNodes && rowNode.leafGroup) { continue; }
 
             if (isParent) {
+
+                let excludedParent = isRemovedSingleChildrenGroup || isRemovedLowestSingleChildrenGroup;
+
                 // we traverse the group if it is expended, however we always traverse if the parent node
                 // was removed (as the group will never be opened if it is not displayed, we show the children instead)
-                if (rowNode.expanded || isRemovedSingleChildrenGroup) {
+                if (rowNode.expanded || excludedParent) {
 
                     // if the parent was excluded, then ui level is that of the parent
-                    let uiLevelForChildren = isRemovedSingleChildrenGroup ? uiLevel : uiLevel + 1;
+                    let uiLevelForChildren = excludedParent ? uiLevel : uiLevel + 1;
                     this.recursivelyAddToRowsToDisplay(rowNode.childrenAfterSort, result,
                         nextRowTop, skipLeafNodes, uiLevelForChildren);
 
@@ -109,9 +114,9 @@ export class FlattenStage implements IRowNodeStage {
                 } else {
 
                 }
-            } else if (rowNode.canFlower && rowNode.expanded) {
-                let flowerNode = this.createFlowerNode(rowNode);
-                this.addRowNodeToRowsToDisplay(flowerNode, result, nextRowTop, uiLevel);
+            } else if (rowNode.master && rowNode.expanded) {
+                let detailNode = this.createDetailNode(rowNode);
+                this.addRowNodeToRowsToDisplay(detailNode, result, nextRowTop, uiLevel);
             }
         }
     }
@@ -152,22 +157,25 @@ export class FlattenStage implements IRowNodeStage {
         groupNode.sibling = footerNode;
     }
 
-    private createFlowerNode(parentNode: RowNode): RowNode {
+    private createDetailNode(masterNode: RowNode): RowNode {
 
-        if (_.exists(parentNode.childFlower)) {
-            return parentNode.childFlower;
+        if (_.exists(masterNode.detailNode)) {
+            return masterNode.detailNode;
         } else {
-            let flowerNode = new RowNode();
-            this.context.wireBean(flowerNode);
-            flowerNode.flower = true;
-            flowerNode.parent = parentNode;
-            if (_.exists(parentNode.id)) {
-                flowerNode.id = 'flowerNode_' + parentNode.id;
+            let detailNode = new RowNode();
+            this.context.wireBean(detailNode);
+            detailNode.detail = true;
+            // flower was renamed to 'detail', but keeping for backwards compatibility
+            detailNode.flower = detailNode.detail;
+            detailNode.parent = masterNode;
+            if (_.exists(masterNode.id)) {
+                detailNode.id = 'detail_' + masterNode.id;
             }
-            flowerNode.data = parentNode.data;
-            flowerNode.level = parentNode.level + 1;
-            parentNode.childFlower = flowerNode;
-            return flowerNode;
+            detailNode.data = masterNode.data;
+            detailNode.level = masterNode.level + 1;
+            masterNode.detailNode = detailNode;
+            masterNode.childFlower = masterNode.detailNode; // for backwards compatibility
+            return detailNode;
         }
 
     }
