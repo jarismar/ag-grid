@@ -253,7 +253,7 @@
   .ag-material .ag-rtl .ag-group-checkbox {
     padding-left: 2px; }
   .ag-material .ag-group-child-count {
-    display: inline-block; }
+    /* display: inline-block; */ }
   .ag-material .ag-footer-cell {
     font-style: italic; }
   .ag-material .ag-menu {

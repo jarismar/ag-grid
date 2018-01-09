@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v13.3.0
+// Type definitions for ag-grid v14.0.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { AgEvent } from "../events";
@@ -29,7 +29,7 @@ export declare class RowNode implements IEventEmitter {
     static EVENT_ROW_SELECTED: string;
     static EVENT_DATA_CHANGED: string;
     static EVENT_CELL_CHANGED: string;
-    static EVENT_ALL_CHILDREN_COUNT_CELL_CHANGED: string;
+    static EVENT_ALL_CHILDREN_COUNT_CHANGED: string;
     static EVENT_MOUSE_ENTER: string;
     static EVENT_MOUSE_LEAVE: string;
     static EVENT_HEIGHT_CHANGED: string;
@@ -163,6 +163,8 @@ export declare class RowNode implements IEventEmitter {
     setDataValue(colKey: string | Column, newValue: any): void;
     setGroupValue(colKey: string | Column, newValue: any): void;
     setAggData(newAggData: any): void;
+    hasChildren(): boolean;
+    isEmptyFillerNode(): boolean;
     private dispatchCellChangedEvent(column, newValue);
     resetQuickFilterAggregateText(): void;
     isExpandable(): boolean;

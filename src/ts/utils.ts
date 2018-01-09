@@ -1,6 +1,7 @@
 import {GridOptionsWrapper} from "./gridOptionsWrapper";
 import {Column} from "./entities/column";
 import {RowNode} from "./entities/rowNode";
+
 let FUNCTION_STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 let FUNCTION_ARGUMENT_NAMES = /([^\s,]+)/g;
 
@@ -41,6 +42,10 @@ export class Utils {
     private static isFirefox: boolean;
 
     private static PRINTABLE_CHARACTERS = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!"£$%^&*()_+-=[];\'#,./\|<>?:@~{}';
+
+    static mimicAsync(callback: Function): void {
+        callback();
+    }
 
     // returns true if the event is close to the original event by X pixels either vertically or horizontally.
     // we only start dragging after X pixels so this allows us to know if we should start dragging yet.
@@ -226,32 +231,26 @@ export class Utils {
         return Object.keys(allValues);
     }
 
-    static mergeDeep(into: any, source: any): void {
+    static mergeDeep(dest: any, source: any): void {
+
         if (this.exists(source)) {
-            this.iterateObject(source, function (key: string, target: any) {
-                let currentValue: any = into[key];
+            this.iterateObject(source, (key: string, newValue: any) => {
 
-                if (currentValue == null) {
-                    into[key] = target;
-                    return;
-                }
+                let oldValue: any = dest[key];
 
-                if (typeof currentValue === 'object') {
-                    if (target) {
-                        Utils.mergeDeep(currentValue, target);
-                        return;
-                    }
-                }
+                if (oldValue === newValue) { return; }
 
-                if (target) {
-                    into[key] = target;
+                if (typeof oldValue === 'object' && typeof newValue === 'object') {
+                    Utils.mergeDeep(oldValue, newValue);
+                } else {
+                    dest[key] = newValue;
                 }
             });
         }
     }
 
-    static assign(object: any, ...sources: any[] ): any {
-        sources.forEach( source => {
+    static assign(object: any, ...sources: any[]): any {
+        sources.forEach(source => {
             if (this.exists(source)) {
                 this.iterateObject(source, function (key: string, value: any) {
                     object[key] = value;
@@ -295,7 +294,7 @@ export class Utils {
 
     static createArrayOfNumbers(first: number, last: number): number[] {
         let result: number[] = [];
-        for (let i = first; i<=last; i++) {
+        for (let i = first; i <= last; i++) {
             result.push(i);
         }
         return result;
@@ -386,11 +385,11 @@ export class Utils {
         if (_.exists(event.key)) {
             // modern browser will implement key, so we return if key is length 1, eg if it is 'a' for the
             // a key, or '2' for the '2' key. non-printable characters have names, eg 'Enter' or 'Backspace'.
-            return event.key.length===1;
+            return event.key.length === 1;
         } else {
             // otherwise, for older browsers, we test against a list of characters, which doesn't include
             // accents for non-English, but don't care much, as most users are on modern browsers
-            return Utils.PRINTABLE_CHARACTERS.indexOf(pressedChar)>=0
+            return Utils.PRINTABLE_CHARACTERS.indexOf(pressedChar) >= 0
         }
     }
 
@@ -432,6 +431,15 @@ export class Utils {
         } else {
             return true;
         }
+    }
+
+    static firstExistingValue<A>(...values: A[]): A {
+        for (let i = 0; i < values.length; i++) {
+            let value: A = values[i];
+            if (_.exists(value)) return value;
+        }
+
+        return null;
     }
 
     static anyExists(values: any[]): boolean {
@@ -479,25 +487,6 @@ export class Utils {
         let tempDiv = document.createElement("div");
         tempDiv.innerHTML = template;
         return <HTMLElement> tempDiv.firstChild;
-    }
-
-    static assertHtmlElement(item: HTMLElement|string): HTMLElement {
-        if (typeof item === 'string') {
-            console.error(`ag-grid: Found a string template for a component type where only HTMLElements are allow. 
-            Please change the component to return back an HTMLElement from getGui(). Only some element types can return back strings.
-            The found template is ${item}`);
-            return null;
-        } else {
-            return <HTMLElement> item;
-        }
-    }
-
-    static ensureElement(item: HTMLElement|string): HTMLElement {
-        if (typeof item === 'string') {
-            return this.loadTemplate(item);
-        } else {
-            return <HTMLElement> item;
-        }
     }
 
     static appendHtml(eContainer: HTMLElement, htmlTemplate: string) {
@@ -592,7 +581,7 @@ export class Utils {
     }
 
     static sortNumberArray(numberArray: number[]): void {
-        numberArray.sort( (a: number, b: number) => a - b);
+        numberArray.sort((a: number, b: number) => a - b);
     }
 
     static removeCssClass(element: HTMLElement, className: string) {
@@ -675,8 +664,12 @@ export class Utils {
         // this is for aggregations sum and avg, where the result can be a number that is wrapped.
         // if we didn't do this, then the toString() value would be used, which would result in
         // the strings getting used instead of the numbers.
-        if (valueA && valueA.toNumber) { valueA = valueA.toNumber(); }
-        if (valueB && valueB.toNumber) { valueB = valueB.toNumber(); }
+        if (valueA && valueA.toNumber) {
+            valueA = valueA.toNumber();
+        }
+        if (valueB && valueB.toNumber) {
+            valueB = valueB.toNumber();
+        }
 
         if (valueAMissing && valueBMissing) {
             return 0;
@@ -689,7 +682,7 @@ export class Utils {
         }
 
         if (typeof valueA === "string") {
-            if (! accentedCompare) {
+            if (!accentedCompare) {
                 return doQuickCompare(valueA, valueB);
             } else {
                 try {
@@ -712,7 +705,7 @@ export class Utils {
             return 0;
         }
 
-        function doQuickCompare (a:string, b:string): number{
+        function doQuickCompare(a: string, b: string): number {
             return (a > b ? 1 : (a < b ? -1 : 0));
         }
     }
@@ -738,7 +731,9 @@ export class Utils {
     static ensureDomOrder(eContainer: HTMLElement, eChild: HTMLElement, eChildBefore: HTMLElement): void {
 
         // if already in right order, do nothing
-        if (eChildBefore && eChildBefore.nextSibling === eChild) { return; }
+        if (eChildBefore && eChildBefore.nextSibling === eChild) {
+            return;
+        }
 
         if (eChildBefore) {
             if (eChildBefore.nextSibling) {
@@ -851,11 +846,11 @@ export class Utils {
     // }
 
 
-    static iconNameClassMap: {[key: string]: string } = {
+    static iconNameClassMap: { [key: string]: string } = {
         'columnMovePin': 'pin',
         'columnMoveAdd': 'plus',
         'columnMoveHide': 'eye-slash',
-        'columnMoveMove': 'arrows', 
+        'columnMoveMove': 'arrows',
         'columnMoveLeft': 'left',
         'columnMoveRight': 'right',
         'columnMoveGroup': 'group',
@@ -882,11 +877,11 @@ export class Utils {
         'clipboardCut': 'cut',
         'clipboardPaste': 'paste',
         'pivotPanel': 'pivot',
-        'rowGroupPanel': 'group', 
-        'valuePanel': 'aggregation', 
+        'rowGroupPanel': 'group',
+        'valuePanel': 'aggregation',
         'columnGroupOpened': 'expanded',
         'columnGroupClosed': 'contracted',
-        'columnSelectClosed': 'tree-closed', 
+        'columnSelectClosed': 'tree-closed',
         'columnSelectOpen': 'tree-open',
         // from deprecated header, remove at some point
         'sortAscending': 'asc',
@@ -1054,21 +1049,55 @@ export class Utils {
     }
 
     static isElementInEventPath(element: HTMLElement, event: Event): boolean {
-        if (!event || !element) { return false; }
-
-        let sourceElement = _.getTarget(event);
-
-        while (sourceElement) {
-            if (sourceElement===element) {
-                return true;
-            }
-            sourceElement = sourceElement.parentElement;
+        if (!event || !element) {
+            return false;
         }
-
-        return false;
+        let path = _.getEventPath(event);
+        return path.indexOf(element) >= 0;
     }
 
-    static forEachSnapshotFirst(list: any[], callback: (item: any)=>void ): void {
+    static createEventPath(event: Event): EventTarget[] {
+        let res: EventTarget[] = [];
+        let pointer = _.getTarget(event);
+        while (pointer) {
+            res.push(pointer);
+            pointer = pointer.parentElement;
+        }
+        return res;
+    }
+
+    // firefox doesn't have event.path set, or any alternative to it, so we hack
+    // it in. this is needed as it's to late to work out the path when the item is
+    // removed from the dom
+    static addAgGridEventPath(event: Event): void {
+        (<any>event).__agGridEventPath = this.getEventPath(event);
+    }
+
+    static getEventPath(event: Event): EventTarget[] {
+        // https://stackoverflow.com/questions/39245488/event-path-undefined-with-firefox-and-vue-js
+        // https://developer.mozilla.org/en-US/docs/Web/API/Event
+
+        let eventNoType = <any> event;
+        if (event.deepPath) {
+            // IE supports deep path
+            return event.deepPath();
+        } else if (eventNoType.path) {
+            // Chrome supports path
+            return eventNoType.path;
+        } else if (eventNoType.composedPath) {
+            // Firefox supports composePath
+            return eventNoType.composedPath();
+        } else if (eventNoType.__agGridEventPath) {
+            // Firefox supports composePath
+            return eventNoType.__agGridEventPath;
+        } else {
+            // and finally, if none of the above worked,
+            // we create the path ourselves
+            return this.createEventPath(event);
+        }
+    }
+
+    static forEachSnapshotFirst(list: any[], callback: (item: any) => void): void {
         if (list) {
             let arrayCopy = list.slice(0);
             arrayCopy.forEach(callback);
@@ -1140,19 +1169,25 @@ export class Utils {
 
     // from https://gist.github.com/youssman/745578062609e8acac9f
     static camelCaseToHyphen(str: string): string {
-        if (str === null || str === undefined) { return null; }
-        return str.replace(/([A-Z])/g, (g) => '-' + g[0].toLowerCase() );
+        if (str === null || str === undefined) {
+            return null;
+        }
+        return str.replace(/([A-Z])/g, (g) => '-' + g[0].toLowerCase());
     }
 
     // from https://stackoverflow.com/questions/6660977/convert-hyphens-to-camel-case-camelcase
     static hyphenToCamelCase(str: string): string {
-        if (str === null || str === undefined) { return null; }
-        return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase() );
+        if (str === null || str === undefined) {
+            return null;
+        }
+        return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
     }
 
     // pas in an object eg: {color: 'black', top: '25px'} and it returns "color: black; top: 25px;" for html
     static cssStyleObjectToMarkup(stylesToUse: any): string {
-        if (!stylesToUse) { return ''; }
+        if (!stylesToUse) {
+            return '';
+        }
 
         let resParts: string[] = [];
         this.iterateObject(stylesToUse, (styleKey: string, styleValue: string) => {
@@ -1172,8 +1207,9 @@ export class Utils {
     }
 
     static escape(toEscape: string): string {
-        if (toEscape === null) return null;
-        if (!toEscape.replace) return toEscape;
+        if (toEscape === null || toEscape === undefined || !toEscape.replace) {
+            return toEscape;
+        }
 
         return toEscape.replace(reUnescapedHtml, chr => HTML_ESCAPES[chr])
     }
@@ -1404,8 +1440,8 @@ export class Utils {
 
     static executeAfter(funcs: Function[], millis: number): void {
         if (funcs.length > 0) {
-            setTimeout( ()=> {
-                funcs.forEach( func => func() );
+            setTimeout(() => {
+                funcs.forEach(func => func());
             }, millis);
         }
     }
@@ -1418,16 +1454,16 @@ export class Utils {
     }
 
 
-    static get(source:{[p:string]:any}, expression:string, defaultValue:any): any{
+    static get(source: { [p: string]: any }, expression: string, defaultValue: any): any {
         if (source == null) return defaultValue;
 
-        if (expression.indexOf('.') > -1){
-            let fields:string[] = expression.split('.');
-            let thisKey:string = fields[0];
+        if (expression.indexOf('.') > -1) {
+            let fields: string[] = expression.split('.');
+            let thisKey: string = fields[0];
             let nextValue: any = source[thisKey];
             if (nextValue != null) {
                 return Utils.get(nextValue, fields.slice(1, fields.length).join('.'), defaultValue);
-            }else {
+            } else {
                 return defaultValue;
             }
         } else {
@@ -1436,21 +1472,32 @@ export class Utils {
         }
     }
 
-    static passiveEvents:string[] = ['touchstart','touchend','touchmove','touchcancel'];
+    static passiveEvents: string[] = ['touchstart', 'touchend', 'touchmove', 'touchcancel'];
 
-    static addSafePassiveEventListener (eElement: HTMLElement, event: string, listener: (event?: any)=>void){
-        eElement.addEventListener(event, listener, <any>(Utils.passiveEvents.indexOf(event) > -1 ? {passive:true} : null));
+    static addSafePassiveEventListener(eElement: HTMLElement, event: string, listener: (event?: any) => void) {
+        eElement.addEventListener(event, listener, <any>(Utils.passiveEvents.indexOf(event) > -1 ? {passive: true} : null));
     }
 
-    static camelCaseToHumanText (camelCase:string):string{
+    static camelCaseToHumanText(camelCase: string): string {
         if (camelCase == null) return null;
 
         // Who needs to learn how to code when you have stack overflow!
         // from: https://stackoverflow.com/questions/15369566/putting-space-in-camel-case-string-using-regular-expression
         let rex = /([A-Z])([A-Z])([a-z])|([a-z])([A-Z])/g;
-        let words:string[] = camelCase.replace( rex, '$1$4 $2$3$5' ).replace('.', ' ').split(' ');
+        let words: string[] = camelCase.replace(rex, '$1$4 $2$3$5').replace('.', ' ').split(' ');
 
-        return words.map(word=>word.substring(0,1).toUpperCase() + ((word.length > 1) ? word.substring(1, word.length):'')).join(' ');
+        return words.map(word => word.substring(0, 1).toUpperCase() + ((word.length > 1) ? word.substring(1, word.length) : '')).join(' ');
+    }
+
+    static sortRowNodesByOrder(rowNodes: RowNode[], rowNodeOrder: { [id: string]: number }): void {
+        if (!rowNodes) {
+            return;
+        }
+        rowNodes.sort((nodeA: RowNode, nodeB: RowNode) => {
+            let positionA = rowNodeOrder[nodeA.id];
+            let positionB = rowNodeOrder[nodeB.id];
+            return positionA - positionB;
+        });
     }
 }
 
@@ -1480,3 +1527,93 @@ export class NumberSequence {
 }
 
 export let _ = Utils;
+
+export type ResolveAndRejectCallback<T> = (resolve:(value:T)=>void, reject:(params:any)=>void)=>void;
+
+export enum PromiseStatus {
+    IN_PROGRESS, RESOLVED
+}
+
+export interface ExternalPromise<T> {
+    resolve:(value:T)=>void,
+    promise:Promise<T>
+}
+
+export class Promise<T> {
+    private status:PromiseStatus = PromiseStatus.IN_PROGRESS;
+    private resolution:T = null;
+    private listOfWaiters: ((value:T)=>void)[] = [];
+
+
+    static all<T> (toCombine:Promise<T>[]): Promise<T[]>{
+        return new Promise(resolve=>{
+            let combinedValues:T[] = [];
+            let remainingToResolve:number = toCombine.length;
+            toCombine.forEach((source, index)=> {
+                source.then(sourceResolved=>{
+                    remainingToResolve --;
+                    combinedValues[index] = sourceResolved;
+                    if (remainingToResolve == 0){
+                        resolve(combinedValues);
+                    }
+                });
+                combinedValues.push(null);
+            });
+        });
+    }
+
+    static resolve<T> (value:T): Promise<T>{
+        return new Promise<T>(resolve=>resolve(value));
+    }
+
+    static external<T> ():ExternalPromise<T>{
+        let capture: (value:T)=> void;
+        let promise:Promise<T> = new Promise<T>((resolve)=>{
+            capture = resolve
+        });
+        return <ExternalPromise<T>>{
+            promise: promise,
+            resolve: (value:T):void => {
+                capture(value)
+            }
+        };
+    }
+
+    constructor (
+        callback:ResolveAndRejectCallback<T>
+    ){
+        callback(this.onDone.bind(this), this.onReject.bind(this))
+    }
+
+    public then(func: (result: any)=>void) {
+        if (this.status === PromiseStatus.IN_PROGRESS){
+            this.listOfWaiters.push(func);
+        } else {
+            func(this.resolution);
+        }
+    }
+
+    public map<Z> (adapter:(from:T)=>Z):Promise<Z>{
+        return new Promise<Z>((resolve)=>{
+            this.then(unmapped=>{
+                resolve(adapter(unmapped))
+            })
+        });
+    }
+
+    public resolveNow<Z> (ifNotResolvedValue:Z, ifResolved:(current:T)=>Z):Z{
+        if (this.status == PromiseStatus.IN_PROGRESS) return ifNotResolvedValue;
+
+        return ifResolved(this.resolution);
+    }
+
+    private onDone (value:T):void {
+        this.status = PromiseStatus.RESOLVED;
+        this.resolution = value;
+        this.listOfWaiters.forEach(waiter=>waiter(value));
+    }
+
+    private onReject (params:any):void {
+        console.warn('TBI');
+    }
+}

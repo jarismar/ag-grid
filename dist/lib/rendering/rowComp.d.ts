@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v13.3.0
+// Type definitions for ag-grid v14.0.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { CellComp } from "./cellComp";
@@ -19,12 +19,10 @@ export declare class LoadingCellRenderer extends Component {
     refresh(params: any): boolean;
 }
 export declare class RowComp extends Component {
-    static EVENT_ROW_REMOVED: string;
     static DOM_DATA_KEY_RENDERED_ROW: string;
     private static FULL_WIDTH_CELL_RENDERER;
     private static GROUP_ROW_RENDERER;
     private static LOADING_CELL_RENDERER;
-    private renderedRowEventService;
     private rowNode;
     private beans;
     private ePinnedLeftRow;
@@ -108,7 +106,7 @@ export declare class RowComp extends Component {
     private createRowEventWithSource(type, domEvent);
     private onRowDblClick(mouseEvent);
     onRowClick(mouseEvent: MouseEvent): void;
-    private createFullWidthRowContainer(rowContainerComp, pinned, extraCssClass, cellRendererType, callback);
+    private createFullWidthRowContainer(rowContainerComp, pinned, extraCssClass, cellRendererType, eRowCallback, cellRendererCallback);
     private angular1Compile(element);
     private createFullWidthParams(eRow, pinned);
     private getInitialRowClasses(extraCssClass);

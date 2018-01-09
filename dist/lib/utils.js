@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v13.3.0
+ * @version v14.0.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -33,6 +33,9 @@ var reUnescapedHtml = /[&<>"']/g;
 var Utils = (function () {
     function Utils() {
     }
+    Utils.mimicAsync = function (callback) {
+        callback();
+    };
     // returns true if the event is close to the original event by X pixels either vertically or horizontally.
     // we only start dragging after X pixels so this allows us to know if we should start dragging yet.
     Utils.areEventsNear = function (e1, e2, pixelCount) {
@@ -198,22 +201,18 @@ var Utils = (function () {
         });
         return Object.keys(allValues);
     };
-    Utils.mergeDeep = function (into, source) {
+    Utils.mergeDeep = function (dest, source) {
         if (this.exists(source)) {
-            this.iterateObject(source, function (key, target) {
-                var currentValue = into[key];
-                if (currentValue == null) {
-                    into[key] = target;
+            this.iterateObject(source, function (key, newValue) {
+                var oldValue = dest[key];
+                if (oldValue === newValue) {
                     return;
                 }
-                if (typeof currentValue === 'object') {
-                    if (target) {
-                        Utils.mergeDeep(currentValue, target);
-                        return;
-                    }
+                if (typeof oldValue === 'object' && typeof newValue === 'object') {
+                    Utils.mergeDeep(oldValue, newValue);
                 }
-                if (target) {
-                    into[key] = target;
+                else {
+                    dest[key] = newValue;
                 }
             });
         }
@@ -390,6 +389,18 @@ var Utils = (function () {
             return true;
         }
     };
+    Utils.firstExistingValue = function () {
+        var values = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            values[_i] = arguments[_i];
+        }
+        for (var i = 0; i < values.length; i++) {
+            var value = values[i];
+            if (exports._.exists(value))
+                return value;
+        }
+        return null;
+    };
     Utils.anyExists = function (values) {
         if (values) {
             for (var i = 0; i < values.length; i++) {
@@ -429,23 +440,6 @@ var Utils = (function () {
         var tempDiv = document.createElement("div");
         tempDiv.innerHTML = template;
         return tempDiv.firstChild;
-    };
-    Utils.assertHtmlElement = function (item) {
-        if (typeof item === 'string') {
-            console.error("ag-grid: Found a string template for a component type where only HTMLElements are allow. \n            Please change the component to return back an HTMLElement from getGui(). Only some element types can return back strings.\n            The found template is " + item);
-            return null;
-        }
-        else {
-            return item;
-        }
-    };
-    Utils.ensureElement = function (item) {
-        if (typeof item === 'string') {
-            return this.loadTemplate(item);
-        }
-        else {
-            return item;
-        }
     };
     Utils.appendHtml = function (eContainer, htmlTemplate) {
         if (eContainer.lastChild) {
@@ -929,14 +923,49 @@ var Utils = (function () {
         if (!event || !element) {
             return false;
         }
-        var sourceElement = exports._.getTarget(event);
-        while (sourceElement) {
-            if (sourceElement === element) {
-                return true;
-            }
-            sourceElement = sourceElement.parentElement;
+        var path = exports._.getEventPath(event);
+        return path.indexOf(element) >= 0;
+    };
+    Utils.createEventPath = function (event) {
+        var res = [];
+        var pointer = exports._.getTarget(event);
+        while (pointer) {
+            res.push(pointer);
+            pointer = pointer.parentElement;
         }
-        return false;
+        return res;
+    };
+    // firefox doesn't have event.path set, or any alternative to it, so we hack
+    // it in. this is needed as it's to late to work out the path when the item is
+    // removed from the dom
+    Utils.addAgGridEventPath = function (event) {
+        event.__agGridEventPath = this.getEventPath(event);
+    };
+    Utils.getEventPath = function (event) {
+        // https://stackoverflow.com/questions/39245488/event-path-undefined-with-firefox-and-vue-js
+        // https://developer.mozilla.org/en-US/docs/Web/API/Event
+        var eventNoType = event;
+        if (event.deepPath) {
+            // IE supports deep path
+            return event.deepPath();
+        }
+        else if (eventNoType.path) {
+            // Chrome supports path
+            return eventNoType.path;
+        }
+        else if (eventNoType.composedPath) {
+            // Firefox supports composePath
+            return eventNoType.composedPath();
+        }
+        else if (eventNoType.__agGridEventPath) {
+            // Firefox supports composePath
+            return eventNoType.__agGridEventPath;
+        }
+        else {
+            // and finally, if none of the above worked,
+            // we create the path ourselves
+            return this.createEventPath(event);
+        }
     };
     Utils.forEachSnapshotFirst = function (list, callback) {
         if (list) {
@@ -1032,10 +1061,9 @@ var Utils = (function () {
         return !isNaN(parseFloat(value)) && isFinite(value);
     };
     Utils.escape = function (toEscape) {
-        if (toEscape === null)
-            return null;
-        if (!toEscape.replace)
+        if (toEscape === null || toEscape === undefined || !toEscape.replace) {
             return toEscape;
+        }
         return toEscape.replace(reUnescapedHtml, function (chr) { return HTML_ESCAPES[chr]; });
     };
     // Taken from here: https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
@@ -1292,6 +1320,16 @@ var Utils = (function () {
         var words = camelCase.replace(rex, '$1$4 $2$3$5').replace('.', ' ').split(' ');
         return words.map(function (word) { return word.substring(0, 1).toUpperCase() + ((word.length > 1) ? word.substring(1, word.length) : ''); }).join(' ');
     };
+    Utils.sortRowNodesByOrder = function (rowNodes, rowNodeOrder) {
+        if (!rowNodes) {
+            return;
+        }
+        rowNodes.sort(function (nodeA, nodeB) {
+            var positionA = rowNodeOrder[nodeA.id];
+            var positionB = rowNodeOrder[nodeB.id];
+            return positionA - positionB;
+        });
+    };
     Utils.PRINTABLE_CHARACTERS = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!"£$%^&*()_+-=[];\'#,./\|<>?:@~{}';
     // static prepend(parent: HTMLElement, child: HTMLElement): void {
     //     if (this.exists(parent.firstChild)) {
@@ -1368,3 +1406,78 @@ var NumberSequence = (function () {
 }());
 exports.NumberSequence = NumberSequence;
 exports._ = Utils;
+var PromiseStatus;
+(function (PromiseStatus) {
+    PromiseStatus[PromiseStatus["IN_PROGRESS"] = 0] = "IN_PROGRESS";
+    PromiseStatus[PromiseStatus["RESOLVED"] = 1] = "RESOLVED";
+})(PromiseStatus = exports.PromiseStatus || (exports.PromiseStatus = {}));
+var Promise = (function () {
+    function Promise(callback) {
+        this.status = PromiseStatus.IN_PROGRESS;
+        this.resolution = null;
+        this.listOfWaiters = [];
+        callback(this.onDone.bind(this), this.onReject.bind(this));
+    }
+    Promise.all = function (toCombine) {
+        return new Promise(function (resolve) {
+            var combinedValues = [];
+            var remainingToResolve = toCombine.length;
+            toCombine.forEach(function (source, index) {
+                source.then(function (sourceResolved) {
+                    remainingToResolve--;
+                    combinedValues[index] = sourceResolved;
+                    if (remainingToResolve == 0) {
+                        resolve(combinedValues);
+                    }
+                });
+                combinedValues.push(null);
+            });
+        });
+    };
+    Promise.resolve = function (value) {
+        return new Promise(function (resolve) { return resolve(value); });
+    };
+    Promise.external = function () {
+        var capture;
+        var promise = new Promise(function (resolve) {
+            capture = resolve;
+        });
+        return {
+            promise: promise,
+            resolve: function (value) {
+                capture(value);
+            }
+        };
+    };
+    Promise.prototype.then = function (func) {
+        if (this.status === PromiseStatus.IN_PROGRESS) {
+            this.listOfWaiters.push(func);
+        }
+        else {
+            func(this.resolution);
+        }
+    };
+    Promise.prototype.map = function (adapter) {
+        var _this = this;
+        return new Promise(function (resolve) {
+            _this.then(function (unmapped) {
+                resolve(adapter(unmapped));
+            });
+        });
+    };
+    Promise.prototype.resolveNow = function (ifNotResolvedValue, ifResolved) {
+        if (this.status == PromiseStatus.IN_PROGRESS)
+            return ifNotResolvedValue;
+        return ifResolved(this.resolution);
+    };
+    Promise.prototype.onDone = function (value) {
+        this.status = PromiseStatus.RESOLVED;
+        this.resolution = value;
+        this.listOfWaiters.forEach(function (waiter) { return waiter(value); });
+    };
+    Promise.prototype.onReject = function (params) {
+        console.warn('TBI');
+    };
+    return Promise;
+}());
+exports.Promise = Promise;

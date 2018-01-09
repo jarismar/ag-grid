@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v13.3.0
+// Type definitions for ag-grid v14.0.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { ColDef, ColGroupDef, IAggFunc } from "./entities/colDef";
@@ -59,6 +59,7 @@ export declare class GridApi {
     private cellRendererFactory;
     private cellEditorFactory;
     private valueCache;
+    private toolPanel;
     private inMemoryRowModel;
     private infinitePageRowModel;
     private enterpriseRowModel;
@@ -88,6 +89,7 @@ export declare class GridApi {
     setColumnDefs(colDefs: (ColDef | ColGroupDef)[]): void;
     expireValueCache(): void;
     getVerticalPixelRange(): any;
+    refreshToolPanel(): void;
     refreshCells(params?: RefreshCellsParams): void;
     redrawRows(params?: RedrawRowsParams): void;
     timeFullRedraw(count?: number): void;
@@ -166,6 +168,7 @@ export declare class GridApi {
     doLayout(): void;
     resetRowHeights(): void;
     setGroupRemoveSingleChildren(value: boolean): void;
+    setGroupRemoveLowestSingleChildren(value: boolean): void;
     onRowHeightChanged(): void;
     getValue(colKey: string | Column, rowNode: RowNode): any;
     addEventListener(eventType: string, listener: Function): void;

@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v13.3.0
+// Type definitions for ag-grid v14.0.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./entities/rowNode";
@@ -20,6 +20,7 @@ export declare class GridOptionsWrapper {
     private static MIN_COL_WIDTH;
     static PROP_HEADER_HEIGHT: string;
     static PROP_GROUP_REMOVE_SINGLE_CHILDREN: string;
+    static PROP_GROUP_REMOVE_LOWEST_SINGLE_CHILDREN: string;
     static PROP_PIVOT_HEADER_HEIGHT: string;
     static PROP_GROUP_HEADER_HEIGHT: string;
     static PROP_PIVOT_GROUP_HEADER_HEIGHT: string;
@@ -53,9 +54,9 @@ export declare class GridOptionsWrapper {
     isFullRowEdit(): boolean;
     isSuppressFocusAfterRefresh(): boolean;
     isShowToolPanel(): boolean;
-    isToolPanelSuppressRowGroups(): boolean;
     isToolPanelSuppressValues(): boolean;
     isToolPanelSuppressPivots(): boolean;
+    isToolPanelSuppressRowGroups(): boolean;
     isToolPanelSuppressPivotMode(): boolean;
     isSuppressTouch(): boolean;
     useAsyncEvents(): boolean;
@@ -65,6 +66,7 @@ export declare class GridOptionsWrapper {
     isGroupHideOpenParents(): boolean;
     isGroupMultiAutoColumn(): boolean;
     isGroupRemoveSingleChildren(): boolean;
+    isGroupRemoveLowestSingleChildren(): boolean;
     isGroupIncludeFooter(): boolean;
     isGroupSuppressBlankHeader(): boolean;
     isSuppressRowClickSelection(): boolean;
@@ -185,12 +187,14 @@ export declare class GridOptionsWrapper {
     getHeaderCellTemplate(): string;
     getHeaderCellTemplateFunc(): (params: any) => string | HTMLElement;
     getNodeChildDetailsFunc(): ((dataItem: any) => NodeChildDetails);
+    getDataPathFunc(): ((dataItem: any) => string[]);
     getGroupRowAggNodesFunc(): (nodes: RowNode[]) => any;
     getContextMenuItemsFunc(): GetContextMenuItems;
     getMainMenuItemsFunc(): GetMainMenuItems;
     getRowNodeIdFunc(): GetRowNodeIdFunc;
     getNavigateToNextCellFunc(): (params: NavigateToNextCellParams) => GridCellDef;
     getTabToNextCellFunc(): (params: TabToNextCellParams) => GridCellDef;
+    isTreeData(): boolean;
     isValueCache(): boolean;
     isValueCacheNeverExpires(): boolean;
     isAggregateOnlyChangedColumns(): boolean;
@@ -230,6 +234,9 @@ export declare class GridOptionsWrapper {
     getRowHeightAsNumber(): number;
     getRowHeightForNode(rowNode: RowNode): number;
     isDynamicRowHeight(): boolean;
+    getVirtualItemHeight(): number;
+    getAggFuncPopupHeight(): number;
+    getCheckboxIndentWidth(): number;
     private isNumeric(value);
     private specialForNewMaterial(defaultValue, materialValue);
     private getDefaultRowHeight();

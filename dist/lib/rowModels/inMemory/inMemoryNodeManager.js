@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v13.3.0
+ * @version v14.0.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -49,10 +49,10 @@ var InMemoryNodeManager = (function () {
         this.getNodeChildDetails = this.gridOptionsWrapper.getNodeChildDetailsFunc();
         this.suppressParentsInRowNodes = this.gridOptionsWrapper.isSuppressParentsInRowNodes();
         this.doesDataFlower = this.gridOptionsWrapper.getDoesDataFlowerFunc();
-        var rowsAlreadyGrouped = utils_1.Utils.exists(this.getNodeChildDetails);
+        var doingLegacyTreeData = utils_1.Utils.exists(this.getNodeChildDetails);
         // kick off recursion
         var result = this.recursiveFunction(rowData, null, InMemoryNodeManager.TOP_LEVEL);
-        if (rowsAlreadyGrouped) {
+        if (doingLegacyTreeData) {
             this.rootNode.childrenAfterGroup = result;
             this.setLeafChildren(this.rootNode);
         }
@@ -60,9 +60,9 @@ var InMemoryNodeManager = (function () {
             this.rootNode.allLeafChildren = result;
         }
     };
-    InMemoryNodeManager.prototype.updateRowData = function (rowDataTran) {
+    InMemoryNodeManager.prototype.updateRowData = function (rowDataTran, rowNodeOrder) {
         var _this = this;
-        if (this.isRowsAlreadyGrouped()) {
+        if (this.isLegacyTreeData()) {
             return null;
         }
         var add = rowDataTran.add, addIndex = rowDataTran.addIndex, remove = rowDataTran.remove, update = rowDataTran.update;
@@ -102,6 +102,9 @@ var InMemoryNodeManager = (function () {
                     rowNodeTransaction.update.push(updatedRowNode);
                 }
             });
+        }
+        if (rowNodeOrder) {
+            utils_1.Utils.sortRowNodesByOrder(this.rootNode.allLeafChildren, rowNodeOrder);
         }
         return rowNodeTransaction;
     };
@@ -164,7 +167,9 @@ var InMemoryNodeManager = (function () {
     InMemoryNodeManager.prototype.createNode = function (dataItem, parent, level) {
         var node = new rowNode_1.RowNode();
         this.context.wireBean(node);
-        var nodeChildDetails = this.getNodeChildDetails ? this.getNodeChildDetails(dataItem) : null;
+        var doingTreeData = this.gridOptionsWrapper.isTreeData();
+        var doingLegacyTreeData = !doingTreeData && utils_1.Utils.exists(this.getNodeChildDetails);
+        var nodeChildDetails = doingLegacyTreeData ? this.getNodeChildDetails(dataItem) : null;
         if (nodeChildDetails && nodeChildDetails.group) {
             node.group = true;
             node.childrenAfterGroup = this.recursiveFunction(nodeChildDetails.children, node, level + 1);
@@ -177,9 +182,19 @@ var InMemoryNodeManager = (function () {
         }
         else {
             node.group = false;
-            node.canFlower = this.doesDataFlower ? this.doesDataFlower(dataItem) : false;
-            if (node.canFlower) {
-                node.expanded = this.isExpanded(level);
+            if (doingTreeData) {
+                node.canFlower = false;
+                node.expanded = false;
+            }
+            else {
+                //  this is the default, for when doing grid data
+                node.canFlower = this.doesDataFlower ? this.doesDataFlower(dataItem) : false;
+                if (node.canFlower) {
+                    node.expanded = this.isExpanded(level);
+                }
+                else {
+                    node.expanded = false;
+                }
             }
         }
         if (parent && !this.suppressParentsInRowNodes) {
@@ -200,6 +215,7 @@ var InMemoryNodeManager = (function () {
             return level < expandByDefault;
         }
     };
+    // this is only used for doing legacy tree data
     InMemoryNodeManager.prototype.setLeafChildren = function (node) {
         node.allLeafChildren = [];
         if (node.childrenAfterGroup) {
@@ -216,7 +232,7 @@ var InMemoryNodeManager = (function () {
         }
     };
     InMemoryNodeManager.prototype.insertItemsAtIndex = function (index, rowData) {
-        if (this.isRowsAlreadyGrouped()) {
+        if (this.isLegacyTreeData()) {
             return null;
         }
         var nodeList = this.rootNode.allLeafChildren;
@@ -236,7 +252,7 @@ var InMemoryNodeManager = (function () {
     };
     InMemoryNodeManager.prototype.removeItems = function (rowNodes) {
         var _this = this;
-        if (this.isRowsAlreadyGrouped()) {
+        if (this.isLegacyTreeData()) {
             return;
         }
         var nodeList = this.rootNode.allLeafChildren;
@@ -256,11 +272,11 @@ var InMemoryNodeManager = (function () {
         var nodeList = this.rootNode.allLeafChildren;
         return this.insertItemsAtIndex(nodeList.length, items);
     };
-    InMemoryNodeManager.prototype.isRowsAlreadyGrouped = function () {
+    InMemoryNodeManager.prototype.isLegacyTreeData = function () {
         var rowsAlreadyGrouped = utils_1.Utils.exists(this.gridOptionsWrapper.getNodeChildDetailsFunc());
         if (rowsAlreadyGrouped) {
             console.warn('ag-Grid: adding and removing rows is not supported when using nodeChildDetailsFunc, ie it is not ' +
-                'supported if providing groups');
+                'supported for legacy tree data. Please see the docs on the new preferred way of providing tree data that works with delta updates.');
             return true;
         }
         else {
