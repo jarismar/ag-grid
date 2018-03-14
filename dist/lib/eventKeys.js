@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -47,10 +47,13 @@ var Events = (function () {
     Events.EVENT_PINNED_ROW_DATA_CHANGED = 'pinnedRowDataChanged';
     /** Range selection has changed */
     Events.EVENT_RANGE_SELECTION_CHANGED = 'rangeSelectionChanged';
+    /** For when the tool panel is shown / hidden */
+    Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED = 'toolPanelVisibleChanged';
     /** Model was updated - grid updates the drawn rows when this happens */
     Events.EVENT_MODEL_UPDATED = 'modelUpdated';
     Events.EVENT_CELL_CLICKED = 'cellClicked';
     Events.EVENT_CELL_DOUBLE_CLICKED = 'cellDoubleClicked';
+    Events.EVENT_CELL_MOUSE_DOWN = 'cellMouseDown';
     Events.EVENT_CELL_CONTEXT_MENU = 'cellContextMenu';
     Events.EVENT_CELL_VALUE_CHANGED = 'cellValueChanged';
     Events.EVENT_ROW_VALUE_CHANGED = 'rowValueChanged';
@@ -87,6 +90,7 @@ var Events = (function () {
     Events.EVENT_CELL_EDITING_STOPPED = 'cellEditingStopped';
     /** Main body of grid has scrolled, either horizontally or vertically */
     Events.EVENT_BODY_SCROLL = 'bodyScroll';
+    Events.EVENT_HEIGHT_SCALE_CHANGED = 'heightScaleChanged';
     /** The displayed page for pagination has changed. For example the data was filtered or sorted,
      * or the user has moved to a different page. */
     Events.EVENT_PAGINATION_CHANGED = 'paginationChanged';
@@ -95,12 +99,16 @@ var Events = (function () {
      * to bound properties, this event fires after the grid has finished processing the change. */
     Events.EVENT_COMPONENT_STATE_CHANGED = 'componentStateChanged';
     /** All items from here down are used internally by the grid, not intended for external use. */
-    // not documented, either experimental, or we just don't want users using an ddepending on them
+    // not documented, either experimental, or we just don't want users using an depending on them
     Events.EVENT_BODY_HEIGHT_CHANGED = 'bodyHeightChanged';
     Events.EVENT_DISPLAYED_COLUMNS_WIDTH_CHANGED = 'displayedColumnsWidthChanged';
     Events.EVENT_SCROLL_VISIBILITY_CHANGED = 'scrollVisibilityChanged';
     Events.EVENT_COLUMN_HOVER_CHANGED = 'columnHoverChanged';
     Events.EVENT_FLASH_CELLS = 'flashCells';
+    Events.EVENT_ROW_DRAG_ENTER = 'rowDragEnter';
+    Events.EVENT_ROW_DRAG_MOVE = 'rowDragMove';
+    Events.EVENT_ROW_DRAG_LEAVE = 'rowDragLeave';
+    Events.EVENT_ROW_DRAG_END = 'rowDragEnd';
     // these are used for server side group and agg - only used by CS with Viewport Row Model - intention is
     // to design these better around server side functions and then release to general public when fully working with
     // all the row models.

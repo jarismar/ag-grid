@@ -1,11 +1,11 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./entities/rowNode";
-import { GetContextMenuItems, GetMainMenuItems, GetRowNodeIdFunc, GridOptions, IsRowMaster, NavigateToNextCellParams, NodeChildDetails, PaginationNumberFormatterParams, PostProcessPopupParams, ProcessRowParams, TabToNextCellParams } from "./entities/gridOptions";
+import { GetContextMenuItems, GetMainMenuItems, GetRowNodeIdFunc, GridOptions, IsRowMaster, IsRowSelectable, NavigateToNextCellParams, NodeChildDetails, PaginationNumberFormatterParams, PostProcessPopupParams, TabToNextCellParams } from "./entities/gridOptions";
 import { GridApi } from "./gridApi";
 import { ColDef, ColGroupDef, IAggFunc } from "./entities/colDef";
-import { ColumnApi } from "./columnController/columnController";
+import { ColumnApi } from "./columnController/columnApi";
 import { IViewportDatasource } from "./interfaces/iViewportDatasource";
 import { IDatasource } from "./rowModels/iDatasource";
 import { GridCellDef } from "./entities/gridCell";
@@ -25,6 +25,8 @@ export declare class GridOptionsWrapper {
     static PROP_GROUP_HEADER_HEIGHT: string;
     static PROP_PIVOT_GROUP_HEADER_HEIGHT: string;
     static PROP_FLOATING_FILTERS_HEIGHT: string;
+    static PROP_SUPPRESS_ROW_DRAG: string;
+    static PROP_POPUP_PARENT: string;
     private gridOptions;
     private columnController;
     private eventService;
@@ -38,12 +40,16 @@ export declare class GridOptionsWrapper {
     private agWire(gridApi, columnApi);
     private destroy();
     init(): void;
+    private checkColumnDefProperties();
+    private checkGridOptionsProperties();
+    private checkProperties(userProperties, validPropertiesAndExceptions, validProperties, containerName, docsUrl);
     getDomData(element: Node, key: string): any;
     setDomData(element: Element, key: string, value: any): any;
     isEnterprise(): boolean;
     isRowSelection(): boolean;
     isRowDeselection(): boolean;
     isRowSelectionMulti(): boolean;
+    isRowMultiSelectWithClick(): boolean;
     getContext(): any;
     isPivotMode(): boolean;
     isPivotTotals(): boolean;
@@ -57,7 +63,12 @@ export declare class GridOptionsWrapper {
     isToolPanelSuppressValues(): boolean;
     isToolPanelSuppressPivots(): boolean;
     isToolPanelSuppressRowGroups(): boolean;
+    isToolPanelSuppressSideButtons(): boolean;
     isToolPanelSuppressPivotMode(): boolean;
+    isContractColumnSelection(): boolean;
+    isToolPanelSuppressColumnFilter(): boolean;
+    isToolPanelSuppressColumnSelectAll(): boolean;
+    isToolPanelSuppressColumnExpandAll(): boolean;
     isSuppressTouch(): boolean;
     useAsyncEvents(): boolean;
     isEnableCellChangeFlash(): boolean;
@@ -72,11 +83,15 @@ export declare class GridOptionsWrapper {
     isSuppressRowClickSelection(): boolean;
     isSuppressCellSelection(): boolean;
     isSuppressMultiSort(): boolean;
+    isMultiSortKeyCtrl(): boolean;
     isGroupSuppressAutoColumn(): boolean;
     isSuppressDragLeaveHidesColumns(): boolean;
     isSuppressScrollOnNewData(): boolean;
+    isRowDragManaged(): boolean;
+    isSuppressRowDrag(): boolean;
     isForPrint(): boolean;
     isAutoHeight(): boolean;
+    isNormalDomLayout(): boolean;
     isSuppressHorizontalScroll(): boolean;
     isSuppressLoadingOverlay(): boolean;
     isSuppressNoRowsOverlay(): boolean;
@@ -91,6 +106,8 @@ export declare class GridOptionsWrapper {
     isCacheQuickFilter(): boolean;
     isUnSortIcon(): boolean;
     isSuppressMenuHide(): boolean;
+    isEnterMovesDownAfterEdit(): boolean;
+    isEnterMovesDown(): boolean;
     getRowStyle(): any;
     getRowClass(): string | string[];
     getRowStyleFunc(): Function;
@@ -98,10 +115,12 @@ export declare class GridOptionsWrapper {
     rowClassRules(): {
         [cssClassName: string]: string | Function;
     };
+    getPopupParent(): HTMLElement;
     getPostProcessPopupFunc(): (params: PostProcessPopupParams) => void;
     getDoesDataFlowerFunc(): (data: any) => boolean;
     getPaginationNumberFormatterFunc(): (params: PaginationNumberFormatterParams) => string;
     getChildCountFunc(): (dataItem: any) => number;
+    getDefaultGroupSortComparator(): (nodeA: RowNode, nodeB: RowNode) => number;
     getIsFullWidthCellFunc(): (rowNode: RowNode) => boolean;
     getFullWidthCellRendererParams(): any;
     isEmbedFullWidthRows(): boolean;
@@ -153,6 +172,7 @@ export declare class GridOptionsWrapper {
     isSuppressCopyRowsToClipboard(): boolean;
     isEnableFilter(): boolean;
     isPagination(): boolean;
+    getBatchUpdateWaitMillis(): number;
     isEnableServerSideFilter(): boolean;
     isEnableServerSideSorting(): boolean;
     isSuppressMovableColumns(): boolean;
@@ -161,6 +181,7 @@ export declare class GridOptionsWrapper {
     isSuppressAggFuncInHeader(): boolean;
     isSuppressAggAtRootLevel(): boolean;
     isEnableRangeSelection(): boolean;
+    isSuppressMultiRangeSelection(): boolean;
     isPaginationAutoPageSize(): boolean;
     isRememberGroupStateWhenNewData(): boolean;
     getIcons(): any;
@@ -171,6 +192,7 @@ export declare class GridOptionsWrapper {
     getAlignedGrids(): GridOptions[];
     isMasterDetail(): boolean;
     getIsRowMasterFunc(): IsRowMaster;
+    getIsRowSelectableFunc(): IsRowSelectable;
     getGroupRowRendererParams(): any;
     getOverlayLoadingTemplate(): string;
     getOverlayNoRowsTemplate(): string;
@@ -200,11 +222,12 @@ export declare class GridOptionsWrapper {
     getProcessSecondaryColDefFunc(): (colDef: ColDef) => void;
     getProcessSecondaryColGroupDefFunc(): (colGroupDef: ColGroupDef) => void;
     getSendToClipboardFunc(): (params: any) => void;
-    getProcessRowPostCreateFunc(): (params: ProcessRowParams) => void;
+    getProcessRowPostCreateFunc(): any;
     getProcessCellForClipboardFunc(): (params: ProcessCellForExportParams) => any;
     getProcessCellFromClipboardFunc(): (params: ProcessCellForExportParams) => any;
     getViewportRowModelPageSize(): number;
     getViewportRowModelBufferSize(): number;
+    getPostSortFunc(): (rowNodes: RowNode[]) => void;
     getClipboardDeliminator(): string;
     setProperty(key: string, value: any): void;
     addEventListener(key: string, listener: Function): void;

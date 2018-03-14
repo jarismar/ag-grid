@@ -67,7 +67,6 @@ export class AutoGroupColService {
             defaultAutoColDef.headerCheckboxSelection = false;
         }
 
-
         let newCol = new Column(defaultAutoColDef, colId, true);
         this.context.wireBean(newCol);
 
@@ -82,7 +81,7 @@ export class AutoGroupColService {
         };
 
         // we never allow moving the group column
-        defaultAutoColDef.suppressMovable = true;
+        // defaultAutoColDef.suppressMovable = true;
 
         if (rowGroupCol) {
             let rowGroupColDef = rowGroupCol.getColDef();
@@ -92,13 +91,13 @@ export class AutoGroupColService {
                 headerValueGetter: rowGroupColDef.headerValueGetter
             });
 
-            if (rowGroupColDef.cellRenderer){
+            if (rowGroupColDef.cellRenderer) {
                 _.assign(defaultAutoColDef, {
                     cellRendererParams:{
                         innerRenderer: rowGroupColDef.cellRenderer,
                         innerRendererParams: rowGroupColDef.cellRendererParams
                     }
-                })
+                });
             }
 
             defaultAutoColDef.showRowGroup = rowGroupCol.getColId();

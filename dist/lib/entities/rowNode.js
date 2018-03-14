@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -21,6 +21,7 @@ var gridOptionsWrapper_1 = require("../gridOptionsWrapper");
 var selectionController_1 = require("../selectionController");
 var valueService_1 = require("../valueService/valueService");
 var columnController_1 = require("../columnController/columnController");
+var columnApi_1 = require("../columnController/columnApi");
 var context_1 = require("../context/context");
 var constants_1 = require("../constants");
 var utils_1 = require("../utils");
@@ -30,6 +31,8 @@ var RowNode = (function () {
     function RowNode() {
         /** Children mapped by the pivot columns */
         this.childrenMapped = {};
+        /** True by default - can be overridden via gridOptions.isRowSelectable(rowNode) */
+        this.selectable = true;
         this.selected = false;
     }
     RowNode.prototype.setData = function (data) {
@@ -97,6 +100,20 @@ var RowNode = (function () {
         this.selectionController.syncInRowNode(this, oldNode);
         var event = this.createDataChangedEvent(data, oldData, false);
         this.dispatchLocalEvent(event);
+        this.checkRowSelectable();
+    };
+    RowNode.prototype.checkRowSelectable = function () {
+        var isRowSelectableFunc = this.gridOptionsWrapper.getIsRowSelectableFunc();
+        var shouldInvokeIsRowSelectable = isRowSelectableFunc && utils_1.Utils.exists(this);
+        this.setRowSelectable(shouldInvokeIsRowSelectable ? isRowSelectableFunc(this) : true);
+    };
+    RowNode.prototype.setRowSelectable = function (newVal) {
+        if (this.selectable !== newVal) {
+            this.selectable = newVal;
+            if (this.eventService) {
+                this.eventService.dispatchEvent(this.createLocalRowEvent(RowNode.EVENT_SELECTABLE_CHANGED));
+            }
+        }
     };
     RowNode.prototype.setId = function (id) {
         // see if user is providing the id's
@@ -159,6 +176,15 @@ var RowNode = (function () {
         this.rowTop = rowTop;
         if (this.eventService) {
             this.eventService.dispatchEvent(this.createLocalRowEvent(RowNode.EVENT_TOP_CHANGED));
+        }
+    };
+    RowNode.prototype.setDragging = function (dragging) {
+        if (this.dragging === dragging) {
+            return;
+        }
+        this.dragging = dragging;
+        if (this.eventService) {
+            this.eventService.dispatchEvent(this.createLocalRowEvent(RowNode.EVENT_DRAGGING_CHANGED));
         }
     };
     RowNode.prototype.setAllChildrenCount = function (allChildrenCount) {
@@ -298,7 +324,11 @@ var RowNode = (function () {
         var newSelectedValue;
         if (this.childrenAfterGroup) {
             for (var i = 0; i < this.childrenAfterGroup.length; i++) {
-                var childState = this.childrenAfterGroup[i].isSelected();
+                var child = this.childrenAfterGroup[i];
+                // skip non-selectable nodes to prevent inconsistent selection values
+                if (!child.selectable)
+                    continue;
+                var childState = child.isSelected();
                 switch (childState) {
                     case true:
                         atLeastOneSelected = true;
@@ -487,9 +517,8 @@ var RowNode = (function () {
         });
     };
     RowNode.prototype.selectThisNode = function (newValue) {
-        if (this.selected === newValue) {
+        if (!this.selectable || this.selected === newValue)
             return false;
-        }
         this.selected = newValue;
         if (this.eventService) {
             this.dispatchLocalEvent(this.createLocalRowEvent(RowNode.EVENT_ROW_SELECTED));
@@ -564,7 +593,9 @@ var RowNode = (function () {
     RowNode.EVENT_CHILD_INDEX_CHANGED = 'childIndexChanged';
     RowNode.EVENT_ROW_INDEX_CHANGED = 'rowIndexChanged';
     RowNode.EVENT_EXPANDED_CHANGED = 'expandedChanged';
+    RowNode.EVENT_SELECTABLE_CHANGED = 'selectableChanged';
     RowNode.EVENT_UI_LEVEL_CHANGED = 'uiLevelChanged';
+    RowNode.EVENT_DRAGGING_CHANGED = 'draggingChanged';
     __decorate([
         context_1.Autowired('eventService'),
         __metadata("design:type", eventService_1.EventService)
@@ -599,7 +630,7 @@ var RowNode = (function () {
     ], RowNode.prototype, "valueCache", void 0);
     __decorate([
         context_1.Autowired('columnApi'),
-        __metadata("design:type", columnController_1.ColumnApi)
+        __metadata("design:type", columnApi_1.ColumnApi)
     ], RowNode.prototype, "columnApi", void 0);
     __decorate([
         context_1.Autowired('gridApi'),

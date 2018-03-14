@@ -2,8 +2,7 @@ import {RowNode} from "./entities/rowNode";
 import {Column} from "./entities/column";
 import {ColDef} from "./entities/colDef";
 import {GridApi} from "./gridApi";
-import {ColumnApi} from "./columnController/columnController";
-import {ColumnGroup} from "./entities/columnGroup";
+import {ColumnApi} from "./columnController/columnApi";
 import {OriginalColumnGroup} from "./entities/originalColumnGroup";
 export { Events } from './eventKeys';
 
@@ -30,9 +29,12 @@ export interface AgGridEvent extends AgEvent {
     columnApi: ColumnApi;
 }
 
+export interface ToolPanelVisibleChanged extends AgGridEvent {}
 export interface ColumnPivotModeChangedEvent extends AgGridEvent {}
 export interface VirtualColumnsChangedEvent extends AgGridEvent {}
-export interface ColumnEverythingChangedEvent extends AgGridEvent {}
+export interface ColumnEverythingChangedEvent extends AgGridEvent {
+    source: string
+}
 export interface NewColumnsLoadedEvent extends AgGridEvent {}
 export interface GridColumnsChangedEvent extends AgGridEvent {}
 export interface DisplayedColumnsChangedEvent extends AgGridEvent {}
@@ -46,8 +48,6 @@ export interface FilterModifiedEvent extends AgGridEvent {}
 export interface BeforeSortChanged extends AgGridEvent {} // added by ADP-e
 export interface SortChangedEvent extends AgGridEvent {}
 export interface GridReadyEvent extends AgGridEvent {}
-export interface DragStartedEvent extends AgGridEvent {}
-export interface DragStoppedEvent extends AgGridEvent {}
 export interface DisplayedColumnsWidthChangedEvent extends AgGridEvent {} // not documented
 export interface ColumnHoverChangedEvent extends AgGridEvent {} // not documented
 export interface BodyHeightChangedEvent extends AgGridEvent {} // not documented
@@ -57,6 +57,26 @@ export interface BodyHeightChangedEvent extends AgGridEvent {} // not documented
 // has 'rowData', so this property should have 'rowData' also, so that when the row
 // data changes via the framework bound property, this event has that attribute set.
 export interface ComponentStateChangedEvent extends AgGridEvent {}
+
+export interface DragEvent extends AgGridEvent {
+    type: string;
+}
+export interface DragStartedEvent extends DragEvent {}
+export interface DragStoppedEvent extends DragEvent {}
+
+export interface RowDragEvent extends AgGridEvent {
+    node: RowNode,
+    y: number,
+    vDirection: string,
+    event: MouseEvent,
+    overIndex: number,
+    overNode: RowNode
+}
+
+export interface RowDragEnterEvent extends RowDragEvent {}
+export interface RowDragEndEvent extends RowDragEvent {}
+export interface RowDragMoveEvent extends RowDragEvent {}
+export interface RowDragLeaveEvent extends RowDragEvent {}
 
 export interface GridSizeChangedEvent extends AgGridEvent {
     clientWidth: number;
@@ -116,9 +136,31 @@ export interface CellFocusedEvent extends AgGridEvent {
 /**---------------*/
 /** COLUMN EVENTS */
 /**---------------*/
+
+export type ColumnEventType =
+    "sizeColumnsToFit" |
+    "autosizeColumns" |
+    "alignedGridChanged" |
+    "filterChanged" |
+    "filterDestroyed" |
+    "gridOptionsChanged" |
+    "gridInitializing" |
+    "toolPanelDragAndDrop" |
+    "toolPanelUi" |
+    "uiColumnMoved" |
+    "uiColumnResized" |
+    "uiColumnDragged" |
+    "uiColumnExpanded" |
+    "uiColumnSorted" |
+    "contextMenu" |
+    "columnMenu" |
+    "rowModelUpdated"  |
+    "api";
+
 export interface ColumnEvent extends AgGridEvent {
     column: Column;
     columns: Column[];
+    source: ColumnEventType;
 }
 
 export interface ColumnResizedEvent extends ColumnEvent {
@@ -180,6 +222,8 @@ export interface CellEvent extends RowEvent {
 }
 
 export interface CellClickedEvent extends CellEvent {}
+
+export interface CellMouseDownEvent extends CellEvent {}
 
 export interface CellDoubleClickedEvent extends CellEvent {}
 

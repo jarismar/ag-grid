@@ -10,7 +10,7 @@ import {IComponent} from "../../interfaces/iComponent";
 import {EventService} from "../../eventService";
 import {RefSelector} from "../../widgets/componentAnnotations";
 import {Events} from "../../events";
-import {ColumnApi} from "../../columnController/columnController";
+import {ColumnApi} from "../../columnController/columnApi";
 import {GridApi} from "../../gridApi";
 
 export interface IHeaderParams {
@@ -120,7 +120,7 @@ export class HeaderComp extends Component implements IHeaderComp {
 
         if (this.params.enableSorting) {
             let tapListener = ()=> {
-                this.sortController.progressSort(this.params.column, false);
+                this.sortController.progressSort(this.params.column, false, "uiColumnSorted");
             };
 
             this.addDestroyableEventListener(touchListener, TouchListener.EVENT_TAP, tapListener);
@@ -180,10 +180,13 @@ export class HeaderComp extends Component implements IHeaderComp {
             return;
         }
 
+        let sortUsingCtrl = this.gridOptionsWrapper.isMultiSortKeyCtrl();
+
         // add the event on the header, so when clicked, we do sorting
         if (this.eLabel) {
             this.addDestroyableEventListener(this.eLabel, 'click', (event:MouseEvent) => {
-                this.params.progressSort(event.shiftKey);
+                let multiSort = sortUsingCtrl ? (event.ctrlKey || event.metaKey) : event.shiftKey;
+                this.params.progressSort(multiSort);
             });
         }
 

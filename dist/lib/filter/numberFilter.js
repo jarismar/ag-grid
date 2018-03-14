@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -50,6 +50,7 @@ var NumberFilter = (function (_super) {
         return "<div class=\"ag-filter-body\">\n            <div>\n                <input class=\"ag-filter-filter\" id=\"filterText\" type=\"text\" placeholder=\"" + translate('filterOoo') + "\"/>\n            </div>\n             <div class=\"ag-filter-number-to\" id=\"filterNumberToPanel\">\n                <input class=\"ag-filter-filter\" id=\"filterToText\" type=\"text\" placeholder=\"" + translate('filterOoo') + "\"/>\n            </div>\n        </div>";
     };
     NumberFilter.prototype.initialiseFilterBodyUi = function () {
+        _super.prototype.initialiseFilterBodyUi.call(this);
         this.filterNumber = null;
         this.eFilterTextField = this.queryForHtmlInputElement("#filterText");
         var debounceMs = this.getDebounceMs(this.filterParams);
@@ -62,12 +63,15 @@ var NumberFilter = (function (_super) {
     };
     NumberFilter.prototype.comparator = function () {
         return function (left, right) {
-            if (left === right)
+            if (left === right) {
                 return 0;
-            if (left < right)
+            }
+            if (left < right) {
                 return 1;
-            if (left > right)
+            }
+            if (left > right) {
                 return -1;
+            }
         };
     };
     NumberFilter.prototype.onTextFieldsChanged = function () {

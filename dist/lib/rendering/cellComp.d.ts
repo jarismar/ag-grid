@@ -1,10 +1,12 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Column } from "../entities/column";
 import { RowNode } from "../entities/rowNode";
 import { GridCell } from "../entities/gridCell";
+import { ICellEditorComp } from "./cellEditors/iCellEditor";
 import { Component } from "../widgets/component";
+import { ICellRendererComp } from "./cellRenderers/iCellRenderer";
 import { Beans } from "./beans";
 import { RowComp } from "./rowComp";
 export declare class CellComp extends Component {
@@ -18,6 +20,8 @@ export declare class CellComp extends Component {
     private gridCell;
     private rangeCount;
     private usingWrapper;
+    private includeSelectionComponent;
+    private includeRowDraggingComponent;
     private cellFocused;
     private editingCell;
     private cellEditorInPopup;
@@ -25,7 +29,6 @@ export declare class CellComp extends Component {
     private lastIPadMouseClickEvent;
     private usingCellRenderer;
     private cellRendererType;
-    private cellRendererComponentName;
     private cellRenderer;
     private cellRendererGui;
     private cellEditor;
@@ -34,7 +37,9 @@ export declare class CellComp extends Component {
     private rowComp;
     private rangeSelectionEnabled;
     private value;
+    private valueFormatted;
     private colsSpanning;
+    private tooltip;
     private scope;
     private cellEditorVersion;
     private cellRendererVersion;
@@ -53,13 +58,14 @@ export declare class CellComp extends Component {
     getInitialValueToRender(): string;
     getRenderedRow(): RowComp;
     isSuppressNavigable(): boolean;
+    getCellRenderer(): ICellRendererComp;
+    getCellEditor(): ICellEditorComp;
     refreshCell(params?: {
         suppressFlash?: boolean;
         newData?: boolean;
         forceRefresh?: boolean;
-        volatile?: boolean;
     }): void;
-    private flashCell();
+    flashCell(): void;
     private animateCell(cssName);
     private replaceContentsAfterRefresh();
     private angular1Compile();
@@ -71,7 +77,6 @@ export declare class CellComp extends Component {
     private processClassesFromColDef(onApplicableClass);
     private putDataIntoCellAfterRefresh();
     attemptCellRendererRefresh(): boolean;
-    isVolatile(): boolean;
     private refreshToolTip();
     private valuesAreEqual(val1, val2);
     private getToolTip();
@@ -83,8 +88,10 @@ export declare class CellComp extends Component {
     private createCellRendererInstance();
     private afterCellRendererCreated(cellRendererVersion, cellRenderer);
     private attachCellRenderer();
-    private createCellRendererParams(valueFormatted);
+    private createCellRendererParams();
     private formatValue(value);
+    private getValueToUse();
+    private getValueAndFormat();
     private getValue();
     onMouseEvent(eventName: string, mouseEvent: MouseEvent): void;
     dispatchCellContextMenuEvent(event: Event): void;
@@ -110,14 +117,16 @@ export declare class CellComp extends Component {
     doesUserWantToCancelKeyboardEvent(event: KeyboardEvent): boolean;
     setFocusOutOnEditor(): void;
     private onNavigationKeyPressed(event, key);
+    private onShiftRangeSelect(key);
     private onTabKeyDown(event);
     private onBackspaceOrDeleteKeyPressed(key);
     private onEnterKeyDown();
+    private navigateAfterEdit();
     private onF2KeyDown();
     private onEscapeKeyDown();
     onKeyPress(event: KeyboardEvent): void;
     private onSpaceKeyPressed(event);
-    private onMouseDown();
+    private onMouseDown(mouseEvent);
     private isDoubleClickOnIPad();
     private onCellClicked(mouseEvent);
     private doIeFocusHack();
@@ -135,6 +144,8 @@ export declare class CellComp extends Component {
     private onRangeSelectionChanged();
     private onFirstRightPinnedChanged();
     private onLastLeftPinnedChanged();
+    private populateTemplate();
+    private addRowDragging();
     private addSelectionCheckbox();
     private addDomData();
     private onCellFocused(event?);

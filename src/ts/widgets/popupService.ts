@@ -6,6 +6,7 @@ import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {PostProcessPopupParams} from "../entities/gridOptions";
 import {RowNode} from "../entities/rowNode";
 import {Column} from "../entities/column";
+import {Environment} from "../environment";
 
 @Bean('popupService')
 export class PopupService {
@@ -14,13 +15,18 @@ export class PopupService {
     // maybe popups in the future should be parent to the body??
     @Autowired('gridCore') private gridCore: GridCore;
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
-
-    // this.popupService.setPopupParent(this.eRootPanel.getGui());
+    @Autowired('environment') private environment: Environment;
 
     private activePopupElements: HTMLElement[] = [];
 
     private getPopupParent(): HTMLElement {
-        return this.gridCore.getRootGui();
+        let ePopupParent = this.gridOptionsWrapper.getPopupParent();
+        if (ePopupParent) {
+            // user provided popup parent, may not have the right theme applied
+            return ePopupParent;
+        } else {
+            return this.gridCore.getRootGui();
+        }
     }
 
     public positionPopupForMenu(params: {eventSource: any, ePopup: HTMLElement}) {
@@ -32,7 +38,7 @@ export class PopupService {
 
         y = this.keepYWithinBounds(params, y);
 
-        let minWidth = (params.ePopup.clientWidth > 0) ? params.ePopup.clientWidth: 200;
+        let minWidth = (params.ePopup.clientWidth > 0) ? params.ePopup.clientWidth : 200;
         let widthOfParent = parentRect.right - parentRect.left;
         let maxX = widthOfParent - minWidth;
 
@@ -117,7 +123,7 @@ export class PopupService {
         this.callPostProcessPopup(params.ePopup, params.eventSource, null, params.type, params.column, params.rowNode);
     }
 
-    private callPostProcessPopup(ePopup: HTMLElement, eventSource: HTMLElement, mouseEvent: MouseEvent|Touch, type:string, column: Column, rowNode: RowNode): void {
+    private callPostProcessPopup(ePopup: HTMLElement, eventSource: HTMLElement, mouseEvent: MouseEvent|Touch, type: string, column: Column, rowNode: RowNode): void {
         let callback = this.gridOptionsWrapper.getPostProcessPopupFunc();
         if (callback) {
             let params: PostProcessPopupParams = {
@@ -158,7 +164,7 @@ export class PopupService {
 
         this.callPostProcessPopup(params.ePopup, params.eventSource, null, params.type, params.column, params.rowNode);
     }
-    
+
     private positionPopup(params: {
                         ePopup: HTMLElement,
                         minWidth?: number,
@@ -217,7 +223,7 @@ export class PopupService {
         let minWidth: number;
         if (params.minWidth > 0) {
             minWidth = params.minWidth;
-        } else if (params.ePopup.clientWidth>0) {
+        } else if (params.ePopup.clientWidth > 0) {
             minWidth = params.ePopup.clientWidth;
         } else {
             minWidth = 200;
@@ -237,7 +243,7 @@ export class PopupService {
     //adds an element to a div, but also listens to background checking for clicks,
     //so that when the background is clicked, the child is removed again, giving
     //a model look to popups.
-    public addAsModalPopup(eChild: any, closeOnEsc: boolean, closedCallback?: ()=>void, click?: MouseEvent | Touch): (event?: any)=>void {
+    public addAsModalPopup(eChild: any, closeOnEsc: boolean, closedCallback?: () => void, click?: MouseEvent | Touch): (event?: any) => void {
 
         let eBody = this.gridOptionsWrapper.getDocument();
         if (!eBody) {
@@ -255,7 +261,13 @@ export class PopupService {
 
         let ePopupParent = this.getPopupParent();
 
-        ePopupParent.appendChild(eChild);
+        // add env CSS class to child, in case user provided a popup parent, which means
+        // theme class may be missing
+        let eWrapper = document.createElement('div');
+        _.addCssClass(eWrapper, this.environment.getTheme());
+        eWrapper.appendChild(eChild);
+
+        ePopupParent.appendChild(eWrapper);
         this.activePopupElements.push(eChild);
 
         let popupHidden = false;
@@ -288,7 +300,7 @@ export class PopupService {
             if (popupHidden) { return; }
             popupHidden = true;
 
-            ePopupParent.removeChild(eChild);
+            ePopupParent.removeChild(eWrapper);
             _.removeFromArray(this.activePopupElements, eChild);
 
             eBody.removeEventListener('keydown', hidePopupOnKeyboardEvent);
@@ -318,7 +330,7 @@ export class PopupService {
         let event = mouseEvent ? mouseEvent : touchEvent;
         if (event) {
             let indexOfThisChild = this.activePopupElements.indexOf(eChild);
-            for (let i = indexOfThisChild; i<this.activePopupElements.length; i++) {
+            for (let i = indexOfThisChild; i < this.activePopupElements.length; i++) {
                 let element = this.activePopupElements[i];
                 if (_.isElementInEventPath(element, event)) {
                     return true;

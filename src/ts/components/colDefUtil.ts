@@ -19,8 +19,9 @@ export class ColDefUtil {
         'templateUrl',
         'filter',
         'aggFunc',
-        'cellEditor'
-
+        'cellRenderer',
+        'cellEditor',
+        'pinned'
     ];
 
     public static OBJECT_PROPERTIES = [
@@ -62,11 +63,11 @@ export class ColDefUtil {
         'pivotIndex'];
 
     public static BOOLEAN_PROPERTIES = [
+        'suppressCellFlash',
         'suppressToolPanel',
         'openByDefault',
         'marryChildren',
         'hide',
-        'pinned',
         'rowGroup',
         'pivot',
         'checkboxSelection',
@@ -76,6 +77,9 @@ export class ColDefUtil {
         'suppressSorting',
         'suppressMovable',
         'suppressFilter',
+        'lockPosition',
+        'lockVisible',
+        'lockPinned',
         'unSortIcon',
         'suppressSizeToFit',
         'suppressResize',
@@ -86,13 +90,15 @@ export class ColDefUtil {
         'editable',
         'suppressPaste',
         'suppressNavigable',
-        'volatile',
-        'enableCellChangeFlash'];
+        'enableCellChangeFlash',
+        'rowDrag'
+    ];
 
     public static FUNCTION_PROPERTIES = [
         'valueGetter',
         'valueSetter',
         'keyCreator',
+        'cellRenderer',
         'cellRendererFramework',
         'pinnedRowCellRenderer',
         'valueFormatter',
@@ -108,7 +114,8 @@ export class ColDefUtil {
         'onCellValueChanged',
         'onCellClicked',
         'onCellDoubleClicked',
-        'onCellContextMenu'];
+        'onCellContextMenu',
+        'tooltip'];
 
     public static ALL_PROPERTIES = ColDefUtil.ARRAY_PROPERTIES
         .concat(ColDefUtil.OBJECT_PROPERTIES)

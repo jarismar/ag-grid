@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -44,11 +44,11 @@ var GridApi = (function () {
         this.detailGridInfoMap = {};
         /*
         Taking these out, as we want to reconsider how we register components
-        
+    
         public addCellRenderer(key: string, cellRenderer: {new(): ICellRenderer} | ICellRendererFunc): void {
             this.cellRendererFactory.addCellRenderer(key, cellRenderer);
         }
-        
+    
         public addCellEditor(key: string, cellEditor: {new(): ICellEditor}): void {
             this.cellEditorFactory.addCellEditor(key, cellEditor);
         }*/
@@ -198,18 +198,19 @@ var GridApi = (function () {
     GridApi.prototype.getPinnedBottomRow = function (index) {
         return this.pinnedRowModel.getPinnedBottomRow(index);
     };
-    GridApi.prototype.setColumnDefs = function (colDefs) {
-        this.columnController.setColumnDefs(colDefs);
+    GridApi.prototype.setColumnDefs = function (colDefs, source) {
+        if (source === void 0) { source = "api"; }
+        this.columnController.setColumnDefs(colDefs, source);
     };
     GridApi.prototype.expireValueCache = function () {
         this.valueCache.expire();
     };
     GridApi.prototype.getVerticalPixelRange = function () {
-        return this.gridPanel.getVerticalPixelRange();
+        return this.gridPanel.getVScrollPosition();
     };
     GridApi.prototype.refreshToolPanel = function () {
-        if (this.toolPanel) {
-            this.toolPanel.refresh();
+        if (this.toolPanelComp) {
+            this.toolPanelComp.refresh();
         }
     };
     GridApi.prototype.refreshCells = function (params) {
@@ -220,6 +221,10 @@ var GridApi = (function () {
             return;
         }
         this.rowRenderer.refreshCells(params);
+    };
+    GridApi.prototype.flashCells = function (params) {
+        if (params === void 0) { params = {}; }
+        this.rowRenderer.flashCells(params);
     };
     GridApi.prototype.redrawRows = function (params) {
         if (params === void 0) { params = {}; }
@@ -281,8 +286,7 @@ var GridApi = (function () {
     };
     // *** deprecated
     GridApi.prototype.softRefreshView = function () {
-        console.warn('ag-Grid: since v11.1, softRefreshView() is deprecated, call refreshCells(params) instead.');
-        this.refreshCells({ volatile: true });
+        console.error('ag-Grid: since v16, softRefreshView() is no longer supported. Please check the documentation on how to refresh.');
     };
     // *** deprecated
     GridApi.prototype.refreshGroupRows = function () {
@@ -296,6 +300,7 @@ var GridApi = (function () {
     };
     GridApi.prototype.refreshHeader = function () {
         this.headerRenderer.refreshHeader();
+        this.gridPanel.setBodyAndHeaderHeights();
     };
     GridApi.prototype.isAnyFilterPresent = function () {
         return this.filterManager.isAnyFilterPresent();
@@ -433,8 +438,9 @@ var GridApi = (function () {
     };
     GridApi.prototype.recomputeAggregates = function () {
         if (utils_1.Utils.missing(this.inMemoryRowModel)) {
-            console.log('cannot call recomputeAggregates unless using normal row model');
+            console.warn('cannot call recomputeAggregates unless using normal row model');
         }
+        console.warn("recomputeAggregates is deprecated, please call api.refreshInMemoryRowModel('aggregate') instead");
         this.inMemoryRowModel.refreshModel({ step: constants_1.Constants.STEP_AGGREGATE });
     };
     GridApi.prototype.sizeColumnsToFit = function () {
@@ -525,7 +531,7 @@ var GridApi = (function () {
     GridApi.prototype.destroyFilter = function (key) {
         var column = this.columnController.getPrimaryColumn(key);
         if (column) {
-            return this.filterManager.destroyFilter(column);
+            return this.filterManager.destroyFilter(column, "filterDestroyed");
         }
     };
     GridApi.prototype.getColumnDef = function (key) {
@@ -543,8 +549,9 @@ var GridApi = (function () {
     GridApi.prototype.onSortChanged = function () {
         this.sortController.onSortChanged();
     };
-    GridApi.prototype.setSortModel = function (sortModel) {
-        this.sortController.setSortModel(sortModel);
+    GridApi.prototype.setSortModel = function (sortModel, source) {
+        if (source === void 0) { source = "api"; }
+        this.sortController.setSortModel(sortModel, source);
     };
     GridApi.prototype.getSortModel = function () {
         return this.sortController.getSortModel();
@@ -563,6 +570,9 @@ var GridApi = (function () {
     };
     GridApi.prototype.setFocusedCell = function (rowIndex, colKey, floating) {
         this.focusedCellController.setFocusedCell(rowIndex, colKey, floating, true);
+    };
+    GridApi.prototype.setSuppressRowDrag = function (value) {
+        this.gridOptionsWrapper.setProperty(gridOptionsWrapper_1.GridOptionsWrapper.PROP_SUPPRESS_ROW_DRAG, value);
     };
     GridApi.prototype.setHeaderHeight = function (headerHeight) {
         this.gridOptionsWrapper.setProperty(gridOptionsWrapper_1.GridOptionsWrapper.PROP_HEADER_HEIGHT, headerHeight);
@@ -701,11 +711,33 @@ var GridApi = (function () {
         var column = this.columnController.getPrimaryColumn(colKey);
         this.menuFactory.showMenuAfterMouseEvent(column, mouseEvent);
     };
+    GridApi.prototype.hidePopupMenu = function () {
+        // hide the context menu if in enterprise
+        if (this.contextMenuFactory) {
+            this.contextMenuFactory.hideActiveMenu();
+        }
+        // and hide the column menu always
+        this.menuFactory.hideActiveMenu();
+    };
+    GridApi.prototype.setPopupParent = function (ePopupParent) {
+        this.gridOptionsWrapper.setProperty(gridOptionsWrapper_1.GridOptionsWrapper.PROP_POPUP_PARENT, ePopupParent);
+    };
     GridApi.prototype.tabToNextCell = function () {
         return this.rowRenderer.tabToNextCell(false);
     };
     GridApi.prototype.tabToPreviousCell = function () {
         return this.rowRenderer.tabToNextCell(true);
+    };
+    GridApi.prototype.getCellRendererInstances = function (params) {
+        if (params === void 0) { params = {}; }
+        return this.rowRenderer.getCellRendererInstances(params);
+    };
+    GridApi.prototype.getCellEditorInstances = function (params) {
+        if (params === void 0) { params = {}; }
+        return this.rowRenderer.getCellEditorInstances(params);
+    };
+    GridApi.prototype.getEditingCells = function () {
+        return this.rowRenderer.getEditingCells();
     };
     GridApi.prototype.stopEditing = function (cancel) {
         if (cancel === void 0) { cancel = false; }
@@ -760,6 +792,13 @@ var GridApi = (function () {
             this.rowRenderer.refreshCells();
         }
         return res;
+    };
+    GridApi.prototype.batchUpdateRowData = function (rowDataTransaction, callback) {
+        if (!this.inMemoryRowModel) {
+            console.error('ag-Grid: api.batchUpdateRowData() only works with InMemoryRowModel.');
+            return;
+        }
+        this.inMemoryRowModel.batchUpdateRowData(rowDataTransaction, callback);
     };
     GridApi.prototype.insertItemsAtIndex = function (index, items, skipRefresh) {
         if (skipRefresh === void 0) { skipRefresh = false; }
@@ -1021,6 +1060,10 @@ var GridApi = (function () {
         __metadata("design:type", Object)
     ], GridApi.prototype, "menuFactory", void 0);
     __decorate([
+        context_1.Optional('contextMenuFactory'),
+        __metadata("design:type", Object)
+    ], GridApi.prototype, "contextMenuFactory", void 0);
+    __decorate([
         context_1.Autowired('cellRendererFactory'),
         __metadata("design:type", cellRendererFactory_1.CellRendererFactory)
     ], GridApi.prototype, "cellRendererFactory", void 0);
@@ -1033,9 +1076,9 @@ var GridApi = (function () {
         __metadata("design:type", valueCache_1.ValueCache)
     ], GridApi.prototype, "valueCache", void 0);
     __decorate([
-        context_1.Optional('toolPanel'),
+        context_1.Optional('toolPanelComp'),
         __metadata("design:type", Object)
-    ], GridApi.prototype, "toolPanel", void 0);
+    ], GridApi.prototype, "toolPanelComp", void 0);
     __decorate([
         context_1.PostConstruct,
         __metadata("design:type", Function),

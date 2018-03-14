@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { GridOptionsWrapper } from "./gridOptionsWrapper";
@@ -28,7 +28,10 @@ export declare class Utils {
     static getScrollLeft(element: HTMLElement, rtl: boolean): number;
     static cleanNumber(value: any): number;
     static setScrollLeft(element: HTMLElement, value: number, rtl: boolean): void;
-    static iterateObject(object: any, callback: (key: string, value: any) => void): void;
+    static iterateNamedNodeMap(map: NamedNodeMap, callback: (key: string, value: string) => void): void;
+    static iterateObject<T>(object: {
+        [p: string]: T;
+    } | T[], callback: (key: string, value: T) => void): void;
     static cloneObject<T>(object: T): T;
     static map<TItem, TResult>(array: TItem[], callback: (item: TItem) => TResult): TResult[];
     static mapObject<TResult>(object: any, callback: (item: any) => TResult): TResult[];
@@ -45,7 +48,7 @@ export declare class Utils {
     static getFunctionParameters(func: any): any;
     static find<T>(collection: T[] | {
         [id: string]: T;
-    }, predicate: string | ((item: T) => void), value?: any): T;
+    }, predicate: string | boolean | ((item: T) => void), value?: any): T;
     static toStrings<T>(array: T[]): string[];
     static iterateArray<T>(array: T[], callback: (item: T, index: number) => void): void;
     static isNode(o: any): boolean;
@@ -53,7 +56,7 @@ export declare class Utils {
     static isNodeOrElement(o: any): boolean;
     static isEventFromPrintableCharacter(event: KeyboardEvent): boolean;
     static addChangeListener(element: HTMLElement, listener: EventListener): void;
-    static makeNull(value: any): any;
+    static makeNull<T>(value: T): T;
     static missing(value: any): boolean;
     static missingOrEmpty(value: any[] | string): boolean;
     static missingOrEmptyObject(value: any): boolean;
@@ -108,6 +111,7 @@ export declare class Utils {
     static addStylesToElement(eElement: any, styles: any): void;
     static isHorizontalScrollShowing(element: HTMLElement): boolean;
     static isVerticalScrollShowing(element: HTMLElement): boolean;
+    static getMaxDivHeight(): number;
     static getScrollbarWidth(): number;
     static isKeyPressed(event: KeyboardEvent, keyToCheck: number): boolean;
     static setVisible(element: HTMLElement, visible: boolean): void;
@@ -257,6 +261,12 @@ export declare class Utils {
     static sortRowNodesByOrder(rowNodes: RowNode[], rowNodeOrder: {
         [id: string]: number;
     }): void;
+    static fuzzyCheckStrings(inputValues: string[], validValues: string[], allSuggestions: string[]): {
+        [p: string]: string[];
+    };
+    static fuzzySuggestions(inputValue: string, validValues: string[], allSuggestions: string[]): string[];
+    static get_bigrams(from: string): any[];
+    static string_similarity: (str1: string, str2: string) => number;
 }
 export declare class NumberSequence {
     private nextValue;
@@ -285,6 +295,7 @@ export declare class Promise<T> {
     static external<T>(): ExternalPromise<T>;
     constructor(callback: ResolveAndRejectCallback<T>);
     then(func: (result: any) => void): void;
+    firstOneOnly(func: (result: any) => void): void;
     map<Z>(adapter: (from: T) => Z): Promise<Z>;
     resolveNow<Z>(ifNotResolvedValue: Z, ifResolved: (current: T) => Z): Z;
     private onDone(value);

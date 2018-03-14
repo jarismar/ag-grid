@@ -1,9 +1,10 @@
 import {Column} from "./entities/column";
 import {Autowired} from "./context/context";
 import {GridOptionsWrapper} from "./gridOptionsWrapper";
-import {ColumnApi, ColumnController} from "./columnController/columnController";
+import {ColumnApi} from "./columnController/columnApi";
+import {ColumnController} from "./columnController/columnController";
 import {EventService} from "./eventService";
-import {Events, SortChangedEvent, BeforeSortChanged} from "./events"; // modified by ADP-e
+import {ColumnEventType, Events, SortChangedEvent, BeforeSortChanged} from "./events"; // modified by ADP-e
 import {Bean} from "./context/context";
 import {Utils as _} from './utils';
 import {GridApi} from "./gridApi";
@@ -19,12 +20,12 @@ export class SortController {
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('gridApi') private gridApi: GridApi;
 
-    public progressSort(column: Column, multiSort: boolean): void {
+    public progressSort(column: Column, multiSort: boolean, source: ColumnEventType = "api"): void {
         let nextDirection = this.getNextSortDirection(column);
-        this.setSortForColumn(column, nextDirection, multiSort);
+        this.setSortForColumn(column, nextDirection, multiSort, source);
     }
 
-    public setSortForColumn(column: Column, sort: string, multiSort: boolean): void {
+    public setSortForColumn(column: Column, sort: string, multiSort: boolean, source: ColumnEventType = "api"): void {
         /* Added by ADP-e */
         const beforeSortChange: BeforeSortChanged = {
             type: Events.DEPRECATED_EVENT_BEFORE_SORT_CHANGED,
@@ -37,7 +38,7 @@ export class SortController {
         if (sort!==Column.SORT_ASC && sort!==Column.SORT_DESC) { sort = null; }
 
         // update sort on current col
-        column.setSort(sort);
+        column.setSort(sort, source);
 
         // sortedAt used for knowing order of cols when multi-col sort
         if (column.getSort()) {
@@ -51,7 +52,7 @@ export class SortController {
 
         // clear sort on all columns except this one, and update the icons
         if (!doingMultiSort) {
-            this.clearSortBarThisColumn(column);
+            this.clearSortBarThisColumn(column, source);
         }
 
         this.dispatchSortChangedEvents();
@@ -72,11 +73,11 @@ export class SortController {
         this.eventService.dispatchEvent(event);
     }
 
-    private clearSortBarThisColumn(columnToSkip: Column): void {
+    private clearSortBarThisColumn(columnToSkip: Column, source: ColumnEventType): void {
         this.columnController.getPrimaryAndSecondaryAndAutoColumns().forEach( (columnToClear: Column)=> {
             // Do not clear if either holding shift, or if column in question was clicked
             if (!(columnToClear === columnToSkip)) {
-                columnToClear.setSort(null);
+                columnToClear.setSort(null, source);
             }
         });
     }
@@ -128,7 +129,7 @@ export class SortController {
         });
     }
 
-    public setSortModel(sortModel: any) {
+    public setSortModel(sortModel: any, source: ColumnEventType = "api") {
         if (!this.gridOptionsWrapper.isEnableSorting()) {
             console.warn('ag-grid: You are setting the sort model on a grid that does not have sorting enabled');
             return;
@@ -153,10 +154,10 @@ export class SortController {
             }
 
             if (sortForCol) {
-                column.setSort(sortForCol);
+                column.setSort(sortForCol, source);
                 column.setSortedAt(sortedAt);
             } else {
-                column.setSort(null);
+                column.setSort(null, source);
                 column.setSortedAt(null);
             }
         });

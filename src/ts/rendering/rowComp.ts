@@ -56,7 +56,6 @@ export class RowComp extends Component {
     public static DOM_DATA_KEY_RENDERED_ROW = 'renderedRow';
 
     private static FULL_WIDTH_CELL_RENDERER = 'fullWidthCellRenderer';
-    private static FULL_WIDTH_CELL_RENDERER_COMP_NAME = 'agFullWidthCellRenderer';
 
     private static GROUP_ROW_RENDERER = 'groupRowRenderer';
     private static GROUP_ROW_RENDERER_COMP_NAME = 'agGroupRowRenderer';
@@ -180,18 +179,21 @@ export class RowComp extends Component {
 
         let rowHeight = this.rowNode.rowHeight;
         let rowClasses = this.getInitialRowClasses(extraCssClass).join(' ');
-        let rowId = this.rowNode.id;
+
+        let rowIdSanitised = _.escape(this.rowNode.id);
 
         let userRowStyles = this.preProcessStylesFromGridOptions();
 
         let businessKey = this.getRowBusinessKey();
+        let businessKeySanitised = _.escape(businessKey);
+
         let rowTopStyle = this.getInitialRowTopStyle();
 
         templateParts.push(`<div`);
         templateParts.push(` role="row"`);
         templateParts.push(` row-index="${this.rowNode.getRowIndexString()}"`);
-        templateParts.push(rowId ? ` row-id="${rowId}"` : ``);
-        templateParts.push(businessKey ? ` row-business-key="${businessKey}"` : ``);
+        templateParts.push(rowIdSanitised ? ` row-id="${rowIdSanitised}"` : ``);
+        templateParts.push(businessKey ? ` row-business-key="${businessKeySanitised}"` : ``);
         templateParts.push(` comp-id="${this.getCompId()}"`);
         templateParts.push(` class="${rowClasses}"`);
         templateParts.push(` style="height: ${rowHeight}px; ${rowTopStyle} ${userRowStyles}">`);
@@ -244,9 +246,11 @@ export class RowComp extends Component {
         if (setRowTop) {
             // if sliding in, we take the old row top. otherwise we just set the current row top.
             let pixels = this.slideRowIn ? this.roundRowTopToBounds(this.rowNode.oldRowTop) : this.rowNode.rowTop;
-            let pixelsWithOffset = this.applyPixelOffset(pixels);
+            let afterPaginationPixels = this.applyPaginationOffset(pixels);
+            let afterScalingPixels = this.beans.heightScaler.getRealPixelPosition(afterPaginationPixels);
+
             // if not setting row top, then below is empty string
-            rowTopStyle = `top: ${pixelsWithOffset}px; `;
+            rowTopStyle = `transform: translateY(${afterScalingPixels}px); `;
         }
         return rowTopStyle;
     }
@@ -296,6 +300,14 @@ export class RowComp extends Component {
             newChildScope.data = data;
             newChildScope.rowNode = this.rowNode;
             newChildScope.context = this.beans.gridOptionsWrapper.getContext();
+
+            this.addDestroyFunc(() => {
+                newChildScope.$destroy();
+                newChildScope.data = null;
+                newChildScope.rowNode = null;
+                newChildScope.context = null;
+            });
+
             return newChildScope;
         } else {
             return null;
@@ -316,7 +328,7 @@ export class RowComp extends Component {
         } else if (isDetailCell) {
             this.createFullWidthRows(RowComp.DETAIL_CELL_RENDERER, RowComp.DETAIL_CELL_RENDERER_COMP_NAME);
         } else if (isFullWidthCell) {
-            this.createFullWidthRows(RowComp.FULL_WIDTH_CELL_RENDERER, RowComp.FULL_WIDTH_CELL_RENDERER_COMP_NAME);
+            this.createFullWidthRows(RowComp.FULL_WIDTH_CELL_RENDERER, null);
         } else if (isGroupSpanningRow) {
             this.createFullWidthRows(RowComp.GROUP_ROW_RENDERER, RowComp.GROUP_ROW_RENDERER_COMP_NAME);
         } else {
@@ -336,7 +348,7 @@ export class RowComp extends Component {
         }
     }
 
-    private createFullWidthRows(type: string, name:string): void {
+    private createFullWidthRows(type: string, name: string): void {
 
         this.fullWidthRow = true;
         this.fullWidthRowEmbedded = this.beans.gridOptionsWrapper.isEmbedFullWidthRows();
@@ -427,10 +439,11 @@ export class RowComp extends Component {
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_TOP_CHANGED, this.onTopChanged.bind(this));
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_EXPANDED_CHANGED, this.onExpandedChanged.bind(this));
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_DATA_CHANGED, this.onRowNodeDataChanged.bind(this));
-
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_CELL_CHANGED, this.onRowNodeCellChanged.bind(this));
+        this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_DRAGGING_CHANGED, this.onRowNodeDraggingChanged.bind(this));
 
         let eventService = this.beans.eventService;
+        this.addDestroyableEventListener(eventService, Events.EVENT_HEIGHT_SCALE_CHANGED, this.onTopChanged.bind(this));
         this.addDestroyableEventListener(eventService, Events.EVENT_DISPLAYED_COLUMNS_CHANGED, this.onDisplayedColumnsChanged.bind(this));
         this.addDestroyableEventListener(eventService, Events.EVENT_VIRTUAL_COLUMNS_CHANGED, this.onVirtualColumnsChanged.bind(this));
         this.addDestroyableEventListener(eventService, Events.EVENT_COLUMN_RESIZED, this.onColumnResized.bind(this));
@@ -468,7 +481,6 @@ export class RowComp extends Component {
         this.postProcessCss();
     }
 
-
     private onRowNodeCellChanged(event: CellChangedEvent): void {
         // as data has changed, then the style and class needs to be recomputed
         this.postProcessCss();
@@ -478,6 +490,16 @@ export class RowComp extends Component {
         this.postProcessStylesFromGridOptions();
         this.postProcessClassesFromGridOptions();
         this.postProcessRowClassRules();
+        this.postProcessRowDragging();
+    }
+
+    private onRowNodeDraggingChanged(): void {
+        this.postProcessRowDragging();
+    }
+
+    private postProcessRowDragging(): void {
+        let dragging = this.rowNode.dragging;
+        this.eAllRowContainers.forEach( (row) => _.addOrRemoveCssClass(row, 'ag-row-dragging', dragging) );
     }
 
     private onExpandedChanged(): void {
@@ -591,8 +613,8 @@ export class RowComp extends Component {
     private isCellEligibleToBeRemoved(indexStr: string): boolean {
         let displayedColumns = this.beans.columnController.getAllDisplayedColumns();
 
-        let REMOVE_CELL : boolean = true;
-        let KEEP_CELL : boolean = false;
+        let REMOVE_CELL: boolean = true;
+        let KEEP_CELL: boolean = false;
         let renderedCell = this.cellComps[indexStr];
 
         if (!renderedCell) { return REMOVE_CELL; }
@@ -673,7 +695,7 @@ export class RowComp extends Component {
         let gow = this.beans.gridOptionsWrapper;
         gow.setDomData(eRowContainer, RowComp.DOM_DATA_KEY_RENDERED_ROW, this);
         this.addDestroyFunc( ()=> {
-            gow.setDomData(eRowContainer, RowComp.DOM_DATA_KEY_RENDERED_ROW, null) }
+            gow.setDomData(eRowContainer, RowComp.DOM_DATA_KEY_RENDERED_ROW, null); }
         );
     }
 
@@ -704,7 +726,7 @@ export class RowComp extends Component {
             api: this.beans.gridOptionsWrapper.getApi(),
             columnApi: this.beans.gridOptionsWrapper.getColumnApi(),
             event: domEvent
-        }
+        };
     }
 
     private createRowEventWithSource(type: string, domEvent: Event): RowEvent {
@@ -716,7 +738,7 @@ export class RowComp extends Component {
         // users to be using this, as the rowComp isn't an object we expose, so would be
         // very surprising if a user was using it.
         (<any>event).source = this;
-        return event
+        return event;
     }
 
     private onRowDblClick(mouseEvent: MouseEvent): void {
@@ -760,9 +782,15 @@ export class RowComp extends Component {
             return;
         }
 
+        let multiSelectOnClick = this.beans.gridOptionsWrapper.isRowMultiSelectWithClick();
+        let rowDeselectionWithCtrl = this.beans.gridOptionsWrapper.isRowDeselection();
+
         if (this.rowNode.isSelected()) {
-            if (multiSelectKeyPressed) {
-                if (this.beans.gridOptionsWrapper.isRowDeselection()) {
+
+            if (multiSelectOnClick) {
+                this.rowNode.setSelectedParams({newValue: false});
+            } else if (multiSelectKeyPressed) {
+                if (rowDeselectionWithCtrl) {
                     this.rowNode.setSelectedParams({newValue: false});
                 }
             } else {
@@ -770,7 +798,8 @@ export class RowComp extends Component {
                 this.rowNode.setSelectedParams({newValue: true, clearSelection: true});
             }
         } else {
-            this.rowNode.setSelectedParams({newValue: true, clearSelection: !multiSelectKeyPressed, rangeSelect: shiftKeyPressed});
+            let clearSelection = multiSelectOnClick ? false : !multiSelectKeyPressed;
+            this.rowNode.setSelectedParams({newValue: true, clearSelection: clearSelection, rangeSelect: shiftKeyPressed});
         }
     }
 
@@ -798,7 +827,7 @@ export class RowComp extends Component {
                 }
             };
 
-            this.beans.componentResolver.createAgGridComponent<ICellRendererComp>(null, params, cellRendererType, cellRendererName).then(callback);
+            this.beans.componentResolver.createAgGridComponent<ICellRendererComp>(null, params, cellRendererType, params, cellRendererName).then(callback);
 
             this.afterRowAttached(rowContainerComp, eRow);
             eRowCallback(eRow);
@@ -854,12 +883,6 @@ export class RowComp extends Component {
             classes.push('ag-row-odd');
         }
 
-        if (this.beans.gridOptionsWrapper.isAnimateRows()) {
-            classes.push('ag-row-animation');
-        } else {
-            classes.push('ag-row-no-animation');
-        }
-
         if (this.rowNode.isSelected()) {
             classes.push('ag-row-selected');
         }
@@ -893,6 +916,10 @@ export class RowComp extends Component {
             classes.push(this.rowNode.expanded ? 'ag-row-group-expanded' : 'ag-row-group-contracted');
         }
 
+        if (this.rowNode.dragging) {
+            classes.push('ag-row-dragging');
+        }
+
         _.pushAll(classes, this.processClassesFromGridOptions());
         _.pushAll(classes, this.preProcessRowClassRules());
 
@@ -903,10 +930,10 @@ export class RowComp extends Component {
         let res: string[] = [];
 
         this.processRowClassRules(
-            (className:string)=>{
+            (className: string)=> {
                 res.push(className);
             },
-            (className:string)=>{
+            (className: string)=> {
                 // not catered for, if creating, no need
                 // to remove class as it was never there
             }
@@ -915,14 +942,17 @@ export class RowComp extends Component {
         return res;
     }
 
-    private processRowClassRules(onApplicableClass:(className:string)=>void, onNotApplicableClass?:(className:string)=>void): void {
+    private processRowClassRules(onApplicableClass: (className: string)=>void, onNotApplicableClass?: (className: string)=>void): void {
         this.beans.stylingService.processClassRules(
             this.beans.gridOptionsWrapper.rowClassRules(),
             {
+                value: undefined,
+                colDef:undefined,
                 data: this.rowNode.data,
                 node: this.rowNode,
                 rowIndex: this.rowNode.rowIndex,
                 api: this.beans.gridOptionsWrapper.getApi(),
+                $scope: this.scope,
                 context: this.beans.gridOptionsWrapper.getContext()
             }, onApplicableClass, onNotApplicableClass);
     }
@@ -958,9 +988,9 @@ export class RowComp extends Component {
         this.forEachCellComp(renderedCell => {
             let cellStartedEdit = renderedCell === sourceRenderedCell;
             if (cellStartedEdit) {
-                renderedCell.startEditingIfEnabled(keyPress, charPress, cellStartedEdit)
+                renderedCell.startEditingIfEnabled(keyPress, charPress, cellStartedEdit);
             } else {
-                renderedCell.startEditingIfEnabled(null, null, cellStartedEdit)
+                renderedCell.startEditingIfEnabled(null, null, cellStartedEdit);
             }
         });
         this.setEditingRow(true);
@@ -985,10 +1015,10 @@ export class RowComp extends Component {
 
     private postProcessRowClassRules(): void {
         this.processRowClassRules(
-            (className:string)=>{
+            (className: string)=> {
                 this.eAllRowContainers.forEach( row => _.addCssClass(row, className));
             },
-            (className:string)=>{
+            (className: string)=> {
                 this.eAllRowContainers.forEach( row => _.removeCssClass(row, className));
             }
         );
@@ -1051,7 +1081,6 @@ export class RowComp extends Component {
             console.log('ag-Grid: rowStyle should be an object of key/value styles, not be a function, use getRowStyle() instead');
             return;
         }
-
 
         // part 1 - rowStyleFunc
         let rowStyleFunc = this.beans.gridOptionsWrapper.getRowStyleFunc();
@@ -1174,9 +1203,11 @@ export class RowComp extends Component {
     // moves the row closer to the viewport if it is far away, so the row slide in / out
     // at a speed the user can see.
     private roundRowTopToBounds(rowTop: number): number {
-        let range = this.beans.gridPanel.getVerticalPixelRange();
-        let minPixel = range.top - 100;
-        let maxPixel = range.bottom + 100;
+        let range = this.beans.gridPanel.getVScrollPosition();
+
+        let minPixel = this.applyPaginationOffset(range.top, true) - 100;
+        let maxPixel = this.applyPaginationOffset(range.bottom, true) + 100;
+
         if (rowTop < minPixel) {
             return minPixel;
         } else if (rowTop > maxPixel) {
@@ -1212,16 +1243,8 @@ export class RowComp extends Component {
         super.removeEventListener(eventType, listener);
     }
 
-    private destroyScope(): void {
-        if (this.scope) {
-            this.scope.$destroy();
-            this.scope = null;
-        }
-    }
-
     public destroy(animate = false): void {
         super.destroy();
-        this.destroyScope();
 
         this.active = false;
 
@@ -1294,11 +1317,19 @@ export class RowComp extends Component {
         this.setRowTop(this.rowNode.rowTop);
     }
 
-    private applyPixelOffset(pixels: number): number {
+    // applies pagination offset, eg if on second page, and page height is 500px, then removes
+    // 500px from the top position, so a row with rowTop 600px is displayed at location 100px.
+    // reverse will take the offset away rather than add.
+    private applyPaginationOffset(topPx: number, reverse = false): number {
         if (this.rowNode.isRowPinned()) {
-            return pixels;
+            return topPx;
         } else {
-            return pixels - this.beans.paginationProxy.getPixelOffset();
+            let pixelOffset = this.beans.paginationProxy.getPixelOffset();
+            if (reverse) {
+                return topPx + pixelOffset;
+            } else {
+                return topPx - pixelOffset;
+            }
         }
     }
 
@@ -1306,9 +1337,12 @@ export class RowComp extends Component {
         // need to make sure rowTop is not null, as this can happen if the node was once
         // visible (ie parent group was expanded) but is now not visible
         if (_.exists(pixels)) {
-            let pixelsWithOffset = this.applyPixelOffset(pixels);
-            let topPx = pixelsWithOffset + "px";
-            this.eAllRowContainers.forEach( row => row.style.top = topPx);
+            let afterPaginationPixels = this.applyPaginationOffset(pixels);
+
+            let afterScalingPixels = this.beans.heightScaler.getRealPixelPosition(afterPaginationPixels);
+
+            let topPx = afterScalingPixels + "px";
+            this.eAllRowContainers.forEach( row => row.style.transform = `translateY(${topPx})` );
         }
     }
 

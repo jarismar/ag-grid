@@ -10,7 +10,7 @@ import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {GridPanel} from "../gridPanel/gridPanel";
 import {ScrollVisibleService} from "../gridPanel/scrollVisibleService";
 import {SelectionController} from "../selectionController";
-import {ColumnApi} from "../columnController/columnController";
+import {ColumnApi} from "../columnController/columnApi";
 import {GridApi} from "../gridApi";
 
 @Bean('paginationAutoPageSizeService')
@@ -201,7 +201,7 @@ export class PaginationProxy extends BeanStub implements IRowModel {
         this.goToPage(pageNumber);
     }
 
-    public getTotalRowCount ():number{
+    public getTotalRowCount(): number {
         return this.rowModel.getPageLastRow() + 1;
     }
 

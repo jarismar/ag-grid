@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -39,7 +39,7 @@ var beanStub_1 = require("../../context/beanStub");
 var rowNodeCache_1 = require("../cache/rowNodeCache");
 var rowNodeBlockLoader_1 = require("../cache/rowNodeBlockLoader");
 var gridApi_1 = require("../../gridApi");
-var columnController_1 = require("../../columnController/columnController");
+var columnApi_1 = require("../../columnController/columnApi");
 var InfiniteRowModel = (function (_super) {
     __extends(InfiniteRowModel, _super);
     function InfiniteRowModel() {
@@ -61,12 +61,19 @@ var InfiniteRowModel = (function (_super) {
         this.setDatasource(this.gridOptionsWrapper.getDatasource());
         this.addDestroyFunc(function () { return _this.destroyCache(); });
     };
+    InfiniteRowModel.prototype.destroyDatasource = function () {
+        if (this.datasource && this.datasource.destroy) {
+            this.datasource.destroy();
+        }
+        this.datasource = null;
+    };
     InfiniteRowModel.prototype.isLastRowFound = function () {
         return this.infiniteCache ? this.infiniteCache.isMaxRowFound() : false;
     };
     InfiniteRowModel.prototype.addEventListeners = function () {
         this.addDestroyableEventListener(this.eventService, events_1.Events.EVENT_FILTER_CHANGED, this.onFilterChanged.bind(this));
         this.addDestroyableEventListener(this.eventService, events_1.Events.EVENT_SORT_CHANGED, this.onSortChanged.bind(this));
+        this.addDestroyableEventListener(this.eventService, events_1.Events.EVENT_COLUMN_EVERYTHING_CHANGED, this.onColumnEverything.bind(this));
     };
     InfiniteRowModel.prototype.onFilterChanged = function () {
         if (this.gridOptionsWrapper.isEnableServerSideFilter()) {
@@ -78,6 +85,12 @@ var InfiniteRowModel = (function (_super) {
             this.reset();
         }
     };
+    InfiniteRowModel.prototype.onColumnEverything = function () {
+        // if the columns get reset, then this means the sort order could be impacted
+        if (this.gridOptionsWrapper.isEnableServerSideSorting()) {
+            this.reset();
+        }
+    };
     InfiniteRowModel.prototype.destroy = function () {
         _super.prototype.destroy.call(this);
     };
@@ -85,6 +98,7 @@ var InfiniteRowModel = (function (_super) {
         return constants_1.Constants.ROW_MODEL_TYPE_INFINITE;
     };
     InfiniteRowModel.prototype.setDatasource = function (datasource) {
+        this.destroyDatasource();
         this.datasource = datasource;
         // only reset if we have a valid datasource to working with
         if (datasource) {
@@ -327,7 +341,7 @@ var InfiniteRowModel = (function (_super) {
     ], InfiniteRowModel.prototype, "gridApi", void 0);
     __decorate([
         context_1.Autowired('columnApi'),
-        __metadata("design:type", columnController_1.ColumnApi)
+        __metadata("design:type", columnApi_1.ColumnApi)
     ], InfiniteRowModel.prototype, "columnApi", void 0);
     __decorate([
         context_1.PostConstruct,
@@ -335,6 +349,12 @@ var InfiniteRowModel = (function (_super) {
         __metadata("design:paramtypes", []),
         __metadata("design:returntype", void 0)
     ], InfiniteRowModel.prototype, "init", null);
+    __decorate([
+        context_1.PreDestroy,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], InfiniteRowModel.prototype, "destroyDatasource", null);
     __decorate([
         context_1.PreDestroy,
         __metadata("design:type", Function),

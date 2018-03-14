@@ -1,4 +1,4 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./rowNode";
@@ -7,10 +7,11 @@ import { ICellRendererComp, ICellRendererFunc } from "../rendering/cellRenderers
 import { Column } from "./column";
 import { IFilterComp } from "../interfaces/iFilter";
 import { GridApi } from "../gridApi";
-import { ColumnApi } from "../columnController/columnController";
+import { ColumnApi } from "../columnController/columnApi";
 import { IHeaderGroupComp } from "../headerRendering/headerGroup/headerGroupComp";
 import { IFloatingFilterComp } from "../filter/floatingFilter";
 import { CellClickedEvent, CellContextMenuEvent, CellDoubleClickedEvent } from "../events";
+import { DynamicComponentDef, DynamicComponentParams } from "../components/framework/componentResolver";
 /****************************************************************
  * Don't forget to update ComponentUtil if changing this class. PLEASE!*
  ****************************************************************/
@@ -30,6 +31,8 @@ export interface AbstractColDef {
     pivotKeys?: string[];
     /** Set to true to not include this column in the toolpanel */
     suppressToolPanel?: boolean;
+    /** Tooltip for the column header */
+    headerTooltip?: string;
 }
 export interface ColGroupDef extends AbstractColDef {
     /** Columns in this group */
@@ -82,8 +85,8 @@ export interface ColDef extends AbstractColDef {
     pinned?: boolean | string;
     /** The field where we get the tooltip on the object */
     tooltipField?: string;
-    /** Tooltip for the column header */
-    headerTooltip?: string;
+    /** The function used to calculate the tooltip of the object, tooltipField takes precedence*/
+    tooltip?: (params: TooltipParams) => string;
     /** Expression or function to get the cells value. */
     valueGetter?: ((params: ValueGetterParams) => any) | string;
     /** If not using a field, then this puts the value into the cell */
@@ -98,7 +101,7 @@ export interface ColDef extends AbstractColDef {
     /** Max width, in pixels, of the cell */
     maxWidth?: number;
     /** Class to use for the cell. Can be string, array of strings, or function. */
-    cellClass?: string | string[] | ((cellClassParams: any) => string | string[]);
+    cellClass?: string | string[] | ((cellClassParams: CellClassParams) => string | string[]);
     /** An object of css values. Or a function returning an object of css values. */
     cellStyle?: {} | ((params: any) => {});
     /** A function for rendering a cell. */
@@ -107,12 +110,14 @@ export interface ColDef extends AbstractColDef {
     } | ICellRendererFunc | string;
     cellRendererFramework?: any;
     cellRendererParams?: any;
+    cellRendererSelector?: (params: DynamicComponentParams) => DynamicComponentDef;
     /** Cell editor */
     cellEditor?: {
         new (): ICellEditorComp;
     } | string;
     cellEditorFramework?: any;
     cellEditorParams?: any;
+    cellEditorSelector?: (params: DynamicComponentParams) => DynamicComponentDef;
     /** A function for rendering a pinned row cell. */
     pinnedRowCellRenderer?: {
         new (): ICellRendererComp;
@@ -150,6 +155,7 @@ export interface ColDef extends AbstractColDef {
     headerCheckboxSelection?: boolean | ((params: any) => boolean);
     /** If true, the header checkbox selection will work on filtered items*/
     headerCheckboxSelectionFilteredOnly?: boolean;
+    rowDrag?: boolean | ((params: any) => boolean);
     /** Set to true if no menu should be shown for this column header. */
     suppressMenu?: boolean;
     /** The menu tabs to show, and in which order, the valid values for this property are:
@@ -159,6 +165,14 @@ export interface ColDef extends AbstractColDef {
     suppressSorting?: boolean;
     /** Set to true to not allow moving this column via dragging it's header */
     suppressMovable?: boolean;
+    /** Set to true to not flash this column for value changes */
+    suppressCellFlash?: boolean;
+    /** Set to true to make sure this column is always first. Other columns, if movable, cannot move before this column. */
+    lockPosition?: boolean;
+    /** Set to true to block the user showing / hiding the column, the column can only be shown / hidden via definitions or API */
+    lockVisible?: boolean;
+    /** Set to true to block the user pinning the column, the column can only be pinned via definitions or API */
+    lockPinned?: boolean;
     /** Set to true to not allow filter on this column */
     suppressFilter?: boolean;
     /** Set to true if you want the unsorted icon to be shown when no sort is applied to this column. */
@@ -190,8 +204,6 @@ export interface ColDef extends AbstractColDef {
      * If false, then skips the UI refresh and no events are emitted.
      * Return false if the values are the same (ie no update). */
     newValueHandler?: (params: any) => boolean;
-    /** If true, this cell gets refreshed when api.softRefreshView() gets called. */
-    volatile?: boolean;
     /** Cell template to use for cell. Useful for AngularJS cells. */
     template?: string;
     /** Cell template URL to load template from to use for cell. Useful for AngularJS cells. */
@@ -226,7 +238,7 @@ export interface ColDef extends AbstractColDef {
     /** Never set this, it is used internally by grid when doing in-grid pivoting */
     pivotTotalColumnIds?: string[];
     /** The custom header component to be used for rendering the component header. If none specified the default ag-Grid is used**/
-    headerComponent?: {
+    headerComponent?: string | {
         new (): any;
     };
     /** The custom header component to be used for rendering the component header in the hosting framework (ie: React/Angular). If none specified the default ag-Grid is used**/
@@ -252,6 +264,7 @@ export interface IsColumnFunc {
 }
 export interface IsColumnFuncParams {
     node: RowNode;
+    data: any;
     column: Column;
     colDef: ColDef;
     context: any;
@@ -295,4 +308,25 @@ export interface ColSpanParams extends BaseColDefParams {
 export interface SuppressKeyboardEventParams extends IsColumnFuncParams {
     event: KeyboardEvent;
     editing: boolean;
+}
+export interface CellClassParams {
+    value: any;
+    data: any;
+    node: RowNode;
+    colDef: ColDef;
+    rowIndex: number;
+    $scope: any;
+    api: GridApi;
+    context: any;
+}
+export interface TooltipParams {
+    value: any;
+    valueFormatted: any;
+    data: any;
+    node: RowNode;
+    colDef: ColDef;
+    rowIndex: number;
+    $scope: any;
+    api: GridApi;
+    context: any;
 }

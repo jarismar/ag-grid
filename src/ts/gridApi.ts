@@ -2,7 +2,8 @@ import {CsvCreator} from "./csvCreator";
 import {RowRenderer} from "./rendering/rowRenderer";
 import {HeaderRenderer} from "./headerRendering/headerRenderer";
 import {FilterManager} from "./filter/filterManager";
-import {ColumnApi, ColumnController} from "./columnController/columnController";
+import {ColumnController} from "./columnController/columnController";
+import {ColumnApi} from "./columnController/columnApi";
 import {SelectionController} from "./selectionController";
 import {GridOptionsWrapper} from "./gridOptionsWrapper";
 import {GridPanel} from "./gridPanel/gridPanel";
@@ -35,6 +36,7 @@ import {IEnterpriseDatasource} from "./interfaces/iEnterpriseDatasource";
 import {PaginationProxy} from "./rowModels/paginationProxy";
 import {IEnterpriseRowModel} from "./interfaces/iEnterpriseRowModel";
 import {
+    BatchTransactionItem,
     InMemoryRowModel, RefreshModelParams, RowDataTransaction,
     RowNodeTransaction
 } from "./rowModels/inMemory/inMemoryRowModel";
@@ -42,9 +44,12 @@ import {ImmutableService} from "./rowModels/inMemory/immutableService";
 import {ValueCache} from "./valueService/valueCache";
 import {AlignedGridsService} from "./alignedGridsService";
 import {PinnedRowModel} from "./rowModels/pinnedRowModel";
-import {AgEvent} from "./events";
+import {AgEvent, ColumnEventType} from "./events";
 import {IToolPanel} from "./interfaces/iToolPanel";
 import {GridOptions} from "./entities/gridOptions";
+import {IContextMenuFactory} from "./interfaces/iContextMenuFactory";
+import {ICellRendererComp} from "./rendering/cellRenderers/iCellRenderer";
+import {ICellEditorComp} from "./rendering/cellEditors/iCellEditor";
 
 export interface StartEditingCellParams {
     rowIndex: number;
@@ -54,12 +59,20 @@ export interface StartEditingCellParams {
     charPress?: string;
 }
 
-export interface RefreshCellsParams {
-    volatile?: boolean;
+export interface GetCellsParams {
     rowNodes?: RowNode[];
     columns?: (string|Column)[];
+}
+
+export interface RefreshCellsParams extends GetCellsParams {
     force?: boolean;
 }
+
+export interface FlashCellsParams extends GetCellsParams {}
+
+export interface GetCellRendererInstancesParams extends GetCellsParams {}
+
+export interface GetCellEditorInstancesParams extends GetCellsParams {}
 
 export interface RedrawRowsParams {
     rowNodes?: RowNode[];
@@ -98,10 +111,11 @@ export class GridApi {
     @Optional('clipboardService') private clipboardService: IClipboardService;
     @Optional('aggFuncService') private aggFuncService: IAggFuncService;
     @Autowired('menuFactory') private menuFactory: IMenuFactory;
+    @Optional('contextMenuFactory') private contextMenuFactory: IContextMenuFactory;
     @Autowired('cellRendererFactory') private cellRendererFactory: CellRendererFactory;
     @Autowired('cellEditorFactory') private cellEditorFactory: CellEditorFactory;
     @Autowired('valueCache') private valueCache: ValueCache;
-    @Optional('toolPanel') private toolPanel: IToolPanel;
+    @Optional('toolPanelComp') private toolPanelComp: IToolPanel;
 
     private inMemoryRowModel: InMemoryRowModel;
     private infinitePageRowModel: InfiniteRowModel;
@@ -272,8 +286,8 @@ export class GridApi {
         return this.pinnedRowModel.getPinnedBottomRow(index);
     }
 
-    public setColumnDefs(colDefs: (ColDef|ColGroupDef)[]) {
-        this.columnController.setColumnDefs(colDefs);
+    public setColumnDefs(colDefs: (ColDef|ColGroupDef)[], source: ColumnEventType = "api") {
+        this.columnController.setColumnDefs(colDefs, source);
     }
 
     public expireValueCache(): void {
@@ -281,12 +295,12 @@ export class GridApi {
     }
 
     public getVerticalPixelRange(): any {
-        return this.gridPanel.getVerticalPixelRange();
+        return this.gridPanel.getVScrollPosition();
     }
 
     public refreshToolPanel(): void {
-        if (this.toolPanel) {
-            this.toolPanel.refresh();
+        if (this.toolPanelComp) {
+            this.toolPanelComp.refresh();
         }
     }
 
@@ -297,6 +311,10 @@ export class GridApi {
             return;
         }
         this.rowRenderer.refreshCells(params);
+    }
+
+    public flashCells(params: FlashCellsParams = {}): void {
+        this.rowRenderer.flashCells(params);
     }
 
     public redrawRows(params: RedrawRowsParams = {}): void {
@@ -368,8 +386,7 @@ export class GridApi {
 
     // *** deprecated
     public softRefreshView() {
-        console.warn('ag-Grid: since v11.1, softRefreshView() is deprecated, call refreshCells(params) instead.');
-        this.refreshCells({volatile: true});
+        console.error('ag-Grid: since v16, softRefreshView() is no longer supported. Please check the documentation on how to refresh.');
     }
 
     // *** deprecated
@@ -386,6 +403,7 @@ export class GridApi {
 
     public refreshHeader() {
         this.headerRenderer.refreshHeader();
+        this.gridPanel.setBodyAndHeaderHeights();
     }
 
     public isAnyFilterPresent(): boolean {
@@ -537,7 +555,8 @@ export class GridApi {
     }
 
     public recomputeAggregates(): void {
-        if (_.missing(this.inMemoryRowModel)) { console.log('cannot call recomputeAggregates unless using normal row model') }
+        if (_.missing(this.inMemoryRowModel)) { console.warn('cannot call recomputeAggregates unless using normal row model') }
+        console.warn(`recomputeAggregates is deprecated, please call api.refreshInMemoryRowModel('aggregate') instead`);
         this.inMemoryRowModel.refreshModel({step: Constants.STEP_AGGREGATE});
     }
 
@@ -644,7 +663,7 @@ export class GridApi {
     public destroyFilter(key: string|Column) {
         let column = this.columnController.getPrimaryColumn(key);
         if (column) {
-            return this.filterManager.destroyFilter(column);
+            return this.filterManager.destroyFilter(column, "filterDestroyed");
         }
     }
 
@@ -665,8 +684,8 @@ export class GridApi {
         this.sortController.onSortChanged();
     }
 
-    public setSortModel(sortModel:any) {
-        this.sortController.setSortModel(sortModel);
+    public setSortModel(sortModel:any, source: ColumnEventType = "api") {
+        this.sortController.setSortModel(sortModel, source);
     }
 
     public getSortModel() {
@@ -691,6 +710,10 @@ export class GridApi {
 
     public setFocusedCell(rowIndex: number, colKey: string|Column, floating?: string) {
         this.focusedCellController.setFocusedCell(rowIndex, colKey, floating, true);
+    }
+
+    public setSuppressRowDrag(value: boolean): void {
+        this.gridOptionsWrapper.setProperty(GridOptionsWrapper.PROP_SUPPRESS_ROW_DRAG, value);
     }
 
     public setHeaderHeight(headerHeight: number) {
@@ -847,12 +870,37 @@ export class GridApi {
         this.menuFactory.showMenuAfterMouseEvent(column, mouseEvent);
     }
 
+    public hidePopupMenu(): void {
+        // hide the context menu if in enterprise
+        if (this.contextMenuFactory) {
+            this.contextMenuFactory.hideActiveMenu();
+        }
+        // and hide the column menu always
+        this.menuFactory.hideActiveMenu();
+    }
+
+    public setPopupParent(ePopupParent: HTMLElement): void {
+        this.gridOptionsWrapper.setProperty(GridOptionsWrapper.PROP_POPUP_PARENT, ePopupParent);
+    }
+
     public tabToNextCell(): boolean {
         return this.rowRenderer.tabToNextCell(false);
     }
 
     public tabToPreviousCell(): boolean {
         return this.rowRenderer.tabToNextCell(true);
+    }
+
+    public getCellRendererInstances(params: GetCellRendererInstancesParams = {}): ICellRendererComp[] {
+        return this.rowRenderer.getCellRendererInstances(params);
+    }
+
+    public getCellEditorInstances(params: GetCellEditorInstancesParams = {}): ICellEditorComp[] {
+        return this.rowRenderer.getCellEditorInstances(params);
+    }
+
+    public getEditingCells(): GridCellDef[] {
+        return this.rowRenderer.getEditingCells();
     }
 
     public stopEditing(cancel: boolean = false): void {
@@ -912,6 +960,14 @@ export class GridApi {
         }
 
         return res;
+    }
+
+    public batchUpdateRowData(rowDataTransaction: RowDataTransaction, callback?: (res: RowNodeTransaction)=>void): void {
+        if (!this.inMemoryRowModel) {
+            console.error('ag-Grid: api.batchUpdateRowData() only works with InMemoryRowModel.');
+            return;
+        }
+        this.inMemoryRowModel.batchUpdateRowData(rowDataTransaction, callback);
     }
 
     public insertItemsAtIndex(index: number, items: any[], skipRefresh = false): void {
@@ -1104,11 +1160,11 @@ export class GridApi {
 
     /*
     Taking these out, as we want to reconsider how we register components
-    
+
     public addCellRenderer(key: string, cellRenderer: {new(): ICellRenderer} | ICellRendererFunc): void {
         this.cellRendererFactory.addCellRenderer(key, cellRenderer);
     }
-    
+
     public addCellEditor(key: string, cellEditor: {new(): ICellEditor}): void {
         this.cellEditorFactory.addCellEditor(key, cellEditor);
     }*/

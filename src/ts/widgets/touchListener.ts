@@ -1,8 +1,7 @@
-
-import {EventService} from "../eventService";
-import {IEventEmitter} from "../interfaces/iEventEmitter";
-import {Utils as _} from "../utils";
-import {AgEvent} from "../events";
+import { EventService } from "../eventService";
+import { IEventEmitter } from "../interfaces/iEventEmitter";
+import { Utils as _ } from "../utils";
+import { AgEvent } from "../events";
 
 export interface TapEvent extends AgEvent {
     touchStart: Touch;
@@ -14,7 +13,6 @@ export interface LongTapEvent extends AgEvent {
 }
 
 export class TouchListener implements IEventEmitter {
-
     private eElement: HTMLElement;
 
     private destroyFuncs: Function[] = [];
@@ -28,29 +26,33 @@ export class TouchListener implements IEventEmitter {
 
     // private mostRecentTouch: Touch;
 
-    public static EVENT_TAP = 'tap';
-    public static EVENT_LONG_TAP = 'longTap';
+    public static EVENT_TAP = "tap";
+    public static EVENT_LONG_TAP = "longTap";
 
-    constructor(eElement: HTMLElement) {
+    private preventMouseClick: boolean;
+
+    constructor(eElement: HTMLElement, preventMouseClick = false) {
         this.eElement = eElement;
+        this.preventMouseClick = preventMouseClick;
 
         let startListener = this.onTouchStart.bind(this);
         let moveListener = this.onTouchMove.bind(this);
         let endListener = this.onTouchEnd.bind(this);
 
-        this.eElement.addEventListener('touchstart', startListener, <any>{passive:true});
-        this.eElement.addEventListener('touchmove', moveListener, <any>{passive:true});
-        this.eElement.addEventListener('touchend', endListener, <any>{passive:true});
+        this.eElement.addEventListener("touchstart", startListener, <any>{ passive: true });
+        this.eElement.addEventListener("touchmove", moveListener, <any>{ passive: true });
+        // we set passive=false, as we want to prevent default on this event
+        this.eElement.addEventListener("touchend", endListener, <any>{ passive: false });
 
-        this.destroyFuncs.push( ()=> {
-            this.eElement.addEventListener('touchstart', startListener, <any>{passive:true});
-            this.eElement.addEventListener('touchmove', moveListener, <any>{passive:true});
-            this.eElement.addEventListener('touchend', endListener, <any>{passive:true});
+        this.destroyFuncs.push(() => {
+            this.eElement.addEventListener("touchstart", startListener, <any>{ passive: true });
+            this.eElement.addEventListener("touchmove", moveListener, <any>{ passive: true });
+            this.eElement.addEventListener("touchend", endListener, <any>{ passive: false });
         });
     }
 
     private getActiveTouch(touchList: TouchList): Touch {
-        for (let i = 0; i<touchList.length; i++) {
+        for (let i = 0; i < touchList.length; i++) {
             let matches = touchList[i].identifier === this.touchStart.identifier;
             if (matches) {
                 return touchList[i];
@@ -70,7 +72,9 @@ export class TouchListener implements IEventEmitter {
 
     private onTouchStart(touchEvent: TouchEvent): void {
         // only looking at one touch point at any time
-        if (this.touching) { return; }
+        if (this.touching) {
+            return;
+        }
 
         this.touchStart = touchEvent.touches[0];
         this.touching = true;
@@ -79,8 +83,7 @@ export class TouchListener implements IEventEmitter {
 
         let touchStartCopy = this.touchStart;
 
-        setTimeout( ()=> {
-
+        setTimeout(() => {
             let touchesMatch = this.touchStart === touchStartCopy;
 
             if (this.touching && touchesMatch && !this.moved) {
@@ -96,7 +99,9 @@ export class TouchListener implements IEventEmitter {
     }
 
     private onTouchMove(touchEvent: TouchEvent): void {
-        if (!this.touching) { return; }
+        if (!this.touching) {
+            return;
+        }
 
         let touch = this.getActiveTouch(touchEvent.touches);
         if (!touch) {
@@ -110,8 +115,9 @@ export class TouchListener implements IEventEmitter {
     }
 
     private onTouchEnd(touchEvent: TouchEvent): void {
-
-        if (!this.touching) { return; }
+        if (!this.touching) {
+            return;
+        }
 
         if (!this.moved) {
             let event: TapEvent = {
@@ -119,12 +125,17 @@ export class TouchListener implements IEventEmitter {
                 touchStart: this.touchStart
             };
             this.eventService.dispatchEvent(event);
+
+            // stops the tap from also been processed as a mouse click
+            if (this.preventMouseClick) {
+                touchEvent.preventDefault();
+            }
         }
 
         this.touching = false;
     }
 
     public destroy(): void {
-        this.destroyFuncs.forEach( func => func() );
+        this.destroyFuncs.forEach(func => func());
     }
 }

@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -29,19 +29,15 @@ var eventService_1 = require("../eventService");
 var context_1 = require("../context/context");
 var events_1 = require("../events");
 var beanStub_1 = require("../context/beanStub");
-var columnController_1 = require("../columnController/columnController");
+var columnApi_1 = require("../columnController/columnApi");
 var gridApi_1 = require("../gridApi");
 var ColumnHoverService = (function (_super) {
     __extends(ColumnHoverService, _super);
     function ColumnHoverService() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    ColumnHoverService.prototype.init = function () {
-        this.addDestroyableEventListener(this.eventService, events_1.Events.EVENT_CELL_MOUSE_OVER, this.onCellMouseOver.bind(this));
-        this.addDestroyableEventListener(this.eventService, events_1.Events.EVENT_CELL_MOUSE_OUT, this.onCellMouseOut.bind(this));
-    };
-    ColumnHoverService.prototype.onCellMouseOver = function (cellEvent) {
-        this.currentlySelectedColumn = cellEvent.column;
+    ColumnHoverService.prototype.setMouseOver = function (columns) {
+        this.selectedColumns = columns;
         var event = {
             type: events_1.Events.EVENT_COLUMN_HOVER_CHANGED,
             api: this.gridApi,
@@ -49,8 +45,8 @@ var ColumnHoverService = (function (_super) {
         };
         this.eventService.dispatchEvent(event);
     };
-    ColumnHoverService.prototype.onCellMouseOut = function () {
-        this.currentlySelectedColumn = null;
+    ColumnHoverService.prototype.clearMouseOver = function () {
+        this.selectedColumns = null;
         var event = {
             type: events_1.Events.EVENT_COLUMN_HOVER_CHANGED,
             api: this.gridApi,
@@ -59,7 +55,7 @@ var ColumnHoverService = (function (_super) {
         this.eventService.dispatchEvent(event);
     };
     ColumnHoverService.prototype.isHovered = function (column) {
-        return column == this.currentlySelectedColumn;
+        return this.selectedColumns && this.selectedColumns.indexOf(column) >= 0;
     };
     __decorate([
         context_1.Autowired('eventService'),
@@ -67,18 +63,12 @@ var ColumnHoverService = (function (_super) {
     ], ColumnHoverService.prototype, "eventService", void 0);
     __decorate([
         context_1.Autowired('columnApi'),
-        __metadata("design:type", columnController_1.ColumnApi)
+        __metadata("design:type", columnApi_1.ColumnApi)
     ], ColumnHoverService.prototype, "columnApi", void 0);
     __decorate([
         context_1.Autowired('gridApi'),
         __metadata("design:type", gridApi_1.GridApi)
     ], ColumnHoverService.prototype, "gridApi", void 0);
-    __decorate([
-        context_1.PostConstruct,
-        __metadata("design:type", Function),
-        __metadata("design:paramtypes", []),
-        __metadata("design:returntype", void 0)
-    ], ColumnHoverService.prototype, "init", null);
     ColumnHoverService = __decorate([
         context_1.Bean('columnHoverService')
     ], ColumnHoverService);

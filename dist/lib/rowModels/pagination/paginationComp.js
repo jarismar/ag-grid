@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -55,8 +55,10 @@ var PaginationComp = (function (_super) {
         this.setTotalLabels();
     };
     PaginationComp.prototype.setCurrentPageLabel = function () {
+        var pagesExist = this.paginationProxy.getTotalPages() > 0;
         var currentPage = this.paginationProxy.getCurrentPage();
-        this.lbCurrent.innerHTML = this.formatNumber(currentPage + 1);
+        var toDisplay = pagesExist ? currentPage + 1 : 0;
+        this.lbCurrent.innerHTML = this.formatNumber(toDisplay);
     };
     PaginationComp.prototype.formatNumber = function (value) {
         var userFunc = this.gridOptionsWrapper.getPaginationNumberFormatterFunc();
@@ -76,7 +78,7 @@ var PaginationComp = (function (_super) {
         var strPrevious = localeTextFunc('previous', 'Previous');
         var strNext = localeTextFunc('next', 'Next');
         var strLast = localeTextFunc('last', 'Last');
-        return "<div class=\"ag-paging-panel ag-font-style\">\n                <span ref=\"eSummaryPanel\" class=\"ag-paging-row-summary-panel\">\n                    <span ref=\"lbFirstRowOnPage\"></span> " + strTo + " <span ref=\"lbLastRowOnPage\"></span> " + strOf + " <span ref=\"lbRecordCount\"></span>\n                </span>\n                <span class=\"ag-paging-page-summary-panel\">\n                    <button class=\"ag-paging-button\" ref=\"btFirst\">" + strFirst + "</button>\n                    <button class=\"ag-paging-button\" ref=\"btPrevious\">" + strPrevious + "</button>\n                    " + strPage + " <span ref=\"lbCurrent\"></span> " + strOf + " <span ref=\"lbTotal\"></span>\n                    <button class=\"ag-paging-button\" ref=\"btNext\">" + strNext + "</button>\n                    <button class=\"ag-paging-button\" ref=\"btLast\">" + strLast + "</button>\n                </span>\n            </div>";
+        return "<div class=\"ag-paging-panel ag-font-style\">\n                <span ref=\"eSummaryPanel\" class=\"ag-paging-row-summary-panel\">\n                    <span ref=\"lbFirstRowOnPage\"></span> " + strTo + " <span ref=\"lbLastRowOnPage\"></span> " + strOf + " <span ref=\"lbRecordCount\"></span>\n                </span>\n                <span class=\"ag-paging-page-summary-panel\">\n                    <button type=\"button\" class=\"ag-paging-button\" ref=\"btFirst\">" + strFirst + "</button>\n                    <button type=\"button\" class=\"ag-paging-button\" ref=\"btPrevious\">" + strPrevious + "</button>\n                    " + strPage + " <span ref=\"lbCurrent\"></span> " + strOf + " <span ref=\"lbTotal\"></span>\n                    <button type=\"button\" class=\"ag-paging-button\" ref=\"btNext\">" + strNext + "</button>\n                    <button type=\"button\" class=\"ag-paging-button\" ref=\"btLast\">" + strLast + "</button>\n                </span>\n            </div>";
     };
     PaginationComp.prototype.onBtNext = function () {
         this.paginationProxy.goToNextPage();

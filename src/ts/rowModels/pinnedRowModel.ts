@@ -8,7 +8,7 @@ import {Events, PinnedRowDataChangedEvent} from "../events";
 import {PostConstruct} from "../context/context";
 import {Constants} from "../constants";
 import {Utils as _} from '../utils';
-import {ColumnApi} from "../columnController/columnController";
+import {ColumnApi} from "../columnController/columnApi";
 import {GridApi} from "../gridApi";
 
 @Bean('pinnedRowModel')
@@ -91,7 +91,7 @@ export class PinnedRowModel {
                 rowNodes.push(rowNode);
             });
         }
-        return rowNodes
+        return rowNodes;
     }
 
     public getPinnedTopRowData(): RowNode[] {

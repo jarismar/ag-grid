@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -29,7 +29,9 @@ var ColDefUtil = (function () {
         'templateUrl',
         'filter',
         'aggFunc',
-        'cellEditor'
+        'cellRenderer',
+        'cellEditor',
+        'pinned'
     ];
     ColDefUtil.OBJECT_PROPERTIES = [
         'headerGroupComponent',
@@ -70,11 +72,11 @@ var ColDefUtil = (function () {
         'pivotIndex'
     ];
     ColDefUtil.BOOLEAN_PROPERTIES = [
+        'suppressCellFlash',
         'suppressToolPanel',
         'openByDefault',
         'marryChildren',
         'hide',
-        'pinned',
         'rowGroup',
         'pivot',
         'checkboxSelection',
@@ -84,6 +86,9 @@ var ColDefUtil = (function () {
         'suppressSorting',
         'suppressMovable',
         'suppressFilter',
+        'lockPosition',
+        'lockVisible',
+        'lockPinned',
         'unSortIcon',
         'suppressSizeToFit',
         'suppressResize',
@@ -94,13 +99,14 @@ var ColDefUtil = (function () {
         'editable',
         'suppressPaste',
         'suppressNavigable',
-        'volatile',
-        'enableCellChangeFlash'
+        'enableCellChangeFlash',
+        'rowDrag'
     ];
     ColDefUtil.FUNCTION_PROPERTIES = [
         'valueGetter',
         'valueSetter',
         'keyCreator',
+        'cellRenderer',
         'cellRendererFramework',
         'pinnedRowCellRenderer',
         'valueFormatter',
@@ -116,7 +122,8 @@ var ColDefUtil = (function () {
         'onCellValueChanged',
         'onCellClicked',
         'onCellDoubleClicked',
-        'onCellContextMenu'
+        'onCellContextMenu',
+        'tooltip'
     ];
     ColDefUtil.ALL_PROPERTIES = ColDefUtil.ARRAY_PROPERTIES
         .concat(ColDefUtil.OBJECT_PROPERTIES)

@@ -12,15 +12,23 @@ import {IAfterGuiAttachedParams} from "../interfaces/iComponent";
 export class StandardMenuFactory implements IMenuFactory {
 
     @Autowired('eventService')
-    private eventService:EventService;
+    private eventService: EventService;
     @Autowired('filterManager')
-    private filterManager:FilterManager;
+    private filterManager: FilterManager;
     @Autowired('popupService')
-    private popupService:PopupService;
+    private popupService: PopupService;
     @Autowired('gridOptionsWrapper')
-    private gridOptionsWrapper:GridOptionsWrapper;
+    private gridOptionsWrapper: GridOptionsWrapper;
 
-    public showMenuAfterMouseEvent(column:Column, mouseEvent:MouseEvent|Touch): void {
+    private hidePopup: ()=> void;
+
+    public hideActiveMenu(): void {
+        if (this.hidePopup) {
+            this.hidePopup();
+        }
+    }
+
+    public showMenuAfterMouseEvent(column: Column, mouseEvent: MouseEvent|Touch): void {
         this.showPopup(column, (eMenu: HTMLElement) => {
             this.popupService.positionPopupUnderMouseEvent({
                 column: column,
@@ -40,12 +48,12 @@ export class StandardMenuFactory implements IMenuFactory {
     }
 
     public showPopup(column: Column,  positionCallback: (eMenu: HTMLElement)=>void): void {
-        let filterWrapper:FilterWrapper = this.filterManager.getOrCreateFilterWrapper(column);
+        let filterWrapper: FilterWrapper = this.filterManager.getOrCreateFilterWrapper(column);
 
         let eMenu = document.createElement('div');
         _.addCssClass(eMenu, 'ag-menu');
-        filterWrapper.guiPromise.promise.then(gui=>{
-            eMenu.appendChild(gui)
+        filterWrapper.guiPromise.promise.then(gui=> {
+            eMenu.appendChild(gui);
         });
 
         let hidePopup: () => void;
@@ -60,7 +68,7 @@ export class StandardMenuFactory implements IMenuFactory {
         this.eventService.addEventListener('bodyScroll', bodyScrollListener);
         let closedCallback = ()=> {
             this.eventService.removeEventListener('bodyScroll', bodyScrollListener);
-            column.setMenuVisible(false);
+            column.setMenuVisible(false, "contextMenu");
         };
 
         // need to show filter before positioning, as only after filter
@@ -68,7 +76,7 @@ export class StandardMenuFactory implements IMenuFactory {
         hidePopup = this.popupService.addAsModalPopup(eMenu, true, closedCallback);
         positionCallback(eMenu);
 
-        filterWrapper.filterPromise.then(filter=>{
+        filterWrapper.filterPromise.then(filter=> {
             if (filter.afterGuiAttached) {
                 let params: IAfterGuiAttachedParams = {
                     hidePopup: hidePopup
@@ -77,7 +85,9 @@ export class StandardMenuFactory implements IMenuFactory {
             }
         });
 
-        column.setMenuVisible(true);
+        this.hidePopup = hidePopup;
+
+        column.setMenuVisible(true, "contextMenu");
     }
 
     public isMenuEnabled(column: Column): boolean {

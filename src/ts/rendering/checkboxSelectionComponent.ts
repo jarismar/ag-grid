@@ -2,13 +2,14 @@
 import {Component} from "../widgets/component";
 import {RowNode} from "../entities/rowNode";
 import {Utils as _} from '../utils';
-import {Autowired, PostConstruct} from "../context/context";
+import {Autowired} from "../context/context";
 import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {Column} from "../entities/column";
 import {Events} from "../events";
 import {EventService} from "../eventService";
 import {GridApi} from "../gridApi";
-import {ColumnApi} from "../columnController/columnController";
+import {ColumnApi} from "../columnController/columnApi";
+import {IsRowSelectable} from "../entities/gridOptions";
 
 export class CheckboxSelectionComponent extends Component {
 
@@ -23,8 +24,7 @@ export class CheckboxSelectionComponent extends Component {
 
     private rowNode: RowNode;
     private column: Column;
-
-    private visibleFunc: Function;
+    private isRowSelectableFunc: IsRowSelectable;
 
     constructor() {
         super(`<span class="ag-selection-checkbox"/>`);
@@ -45,6 +45,10 @@ export class CheckboxSelectionComponent extends Component {
         // when rows are loaded for the second time, this can impact the selection, as a row
         // could be loaded as already selected (if user scrolls down, and then up again).
         this.onSelectionChanged();
+    }
+
+    private onSelectableChanged(): void {
+        this.showOrHideSelect();
     }
 
     private onSelectionChanged(): void {
@@ -74,10 +78,8 @@ export class CheckboxSelectionComponent extends Component {
     }
 
     public init(params: any): void {
-
         this.rowNode = params.rowNode;
         this.column = params.column;
-        this.visibleFunc = params.visibleFunc;
 
         this.createAndAddIcons();
 
@@ -95,29 +97,32 @@ export class CheckboxSelectionComponent extends Component {
 
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_ROW_SELECTED, this.onSelectionChanged.bind(this));
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_DATA_CHANGED, this.onDataChanged.bind(this));
+        this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_SELECTABLE_CHANGED, this.onSelectableChanged.bind(this));
 
-        if (this.visibleFunc) {
+        this.isRowSelectableFunc = this.gridOptionsWrapper.getIsRowSelectableFunc();
+        let checkboxVisibleIsDynamic = this.isRowSelectableFunc || this.checkboxCallbackExists();
+        if (checkboxVisibleIsDynamic) {
             this.addDestroyableEventListener(this.eventService, Events.EVENT_DISPLAYED_COLUMNS_CHANGED, this.showOrHideSelect.bind(this));
             this.showOrHideSelect();
         }
     }
 
     private showOrHideSelect(): void {
-        let params = this.createParams();
-        let visible = this.visibleFunc(params);
-        this.setVisible(visible);
+        // if the isRowSelectable() is not provided the row node is selectable by default
+        let selectable = this.rowNode.selectable;
+
+        // checkboxSelection callback is deemed a legacy solution however we will still consider it's result.
+        // If selectable, then also check the colDef callback. if not selectable, this it short circuits - no need
+        // to call the colDef callback.
+        if (selectable && this.checkboxCallbackExists()) {
+            selectable = this.column.isCellCheckboxSelection(this.rowNode);
+        }
+
+        // show checkbox if both conditions are true
+        this.setVisible(selectable);
     }
 
-    private createParams(): any {
-        let params = {
-            node: this.rowNode,
-            data: this.rowNode.data,
-            column: this.column,
-            colDef: this.column.getColDef(),
-            context: this.gridOptionsWrapper.getContext(),
-            api: this.gridApi,
-            columnApi: this.columnApi
-        };
-        return params;
+    private checkboxCallbackExists(): boolean {
+        return typeof this.column.getColDef().checkboxSelection === 'function';
     }
 }

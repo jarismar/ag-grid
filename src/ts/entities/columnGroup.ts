@@ -7,7 +7,7 @@ import {EventService} from "../eventService";
 import {Autowired} from "../context/context";
 import {GridOptionsWrapper} from "../gridOptionsWrapper";
 import {AgEvent} from "../events";
-import {ColumnApi} from "../columnController/columnController";
+import {ColumnApi} from "../columnController/columnApi";
 import {GridApi} from "../gridApi";
 
 export class ColumnGroup implements ColumnGroupChild {
@@ -16,7 +16,7 @@ export class ColumnGroup implements ColumnGroupChild {
     public static HEADER_GROUP_SHOW_CLOSED = 'closed';
 
     public static EVENT_LEFT_CHANGED = 'leftChanged';
-    public static EVENT_DISPLAYED_CHILDREN_CHANGED = 'leftChanged';
+    public static EVENT_DISPLAYED_CHILDREN_CHANGED = 'displayedChildrenChanged';
 
     // this is static, a it is used outside of this class
     public static createUniqueId(groupId: string, instanceId: number): string {
@@ -28,9 +28,9 @@ export class ColumnGroup implements ColumnGroupChild {
     @Autowired('gridApi') private gridApi: GridApi;
 
     // all the children of this group, regardless of whether they are opened or closed
-    private children:ColumnGroupChild[];
+    private children: ColumnGroupChild[];
     // depends on the open/closed state of the group, only displaying columns are stored here
-    private displayedChildren:ColumnGroupChild[] = [];
+    private displayedChildren: ColumnGroupChild[] = [];
 
     private groupId: string;
     private instanceId: number;
@@ -71,6 +71,19 @@ export class ColumnGroup implements ColumnGroupChild {
 
     public isEmptyGroup(): boolean {
         return this.displayedChildren.length === 0;
+    }
+
+    public isMoving(): boolean {
+        let allLeafColumns = this.getOriginalColumnGroup().getLeafColumns();
+        if (!allLeafColumns || allLeafColumns.length===0) { return false; }
+
+        let allMoving = true;
+        allLeafColumns.forEach( col => {
+            if (!col.isMoving()) {
+                allMoving = false;
+            }
+        });
+        return allMoving;
     }
 
     public checkLeft(): void {
@@ -264,7 +277,7 @@ export class ColumnGroup implements ColumnGroupChild {
     public getOriginalColumnGroup(): OriginalColumnGroup {
         return this.originalColumnGroup;
     }
-    
+
     public calculateDisplayedColumns() {
         // clear out last time we calculated
         this.displayedChildren = [];

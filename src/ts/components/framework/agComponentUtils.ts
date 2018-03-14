@@ -20,7 +20,8 @@ export class AgComponentUtils {
         if (hardcodedJsFunction == null) return {
             component: null,
             type: type,
-            source: source
+            source: source,
+            dynamicParams: null
         };
 
         let metadata:ComponentMetadata = this.componentMetadataProvider.retrieve(propertyName);
@@ -28,10 +29,10 @@ export class AgComponentUtils {
             return {
                 type: type,
                 component: <{new(): A}>metadata.functionAdapter(hardcodedJsFunction),
-                source: source
+                source: source,
+                dynamicParams: null
             }
         }
-        console.error(`It seems like you are providing a function as a component: ${hardcodedJsFunction}, but this component: [${propertyName}] doesnt accept functions`)
         return null;
     }
 
@@ -45,9 +46,12 @@ export class AgComponentUtils {
 
             getGui(): HTMLElement {
                 let callbackResult: string | HTMLElement = callback(this.params);
-                if (typeof callbackResult != 'string') return callbackResult;
-
-                return _.loadTemplate('<span>' + callbackResult + '</span>');
+                let type = typeof callbackResult;
+                if (type === 'string' || type === 'number' || type === 'boolean') {
+                    return _.loadTemplate('<span>' + callbackResult + '</span>');
+                } else {
+                    return <HTMLElement> callbackResult;
+                }
             }
 
             init?(params: ICellRendererParams): void {

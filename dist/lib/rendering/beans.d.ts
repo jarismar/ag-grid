@@ -1,8 +1,9 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Context } from "../context/context";
-import { ColumnApi, ColumnController } from "../columnController/columnController";
+import { ColumnApi } from "../columnController/columnApi";
+import { ColumnController } from "../columnController/columnController";
 import { GridApi } from "../gridApi";
 import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { ExpressionService } from "../valueService/expressionService";
@@ -25,6 +26,15 @@ import { GridPanel } from "../gridPanel/gridPanel";
 import { PaginationProxy } from "../rowModels/paginationProxy";
 import { AnimationFrameService } from "../misc/animationFrameService";
 import { ComponentResolver } from "../components/framework/componentResolver";
+import { DragAndDropService } from "../dragAndDrop/dragAndDropService";
+import { SortController } from "../sortController";
+import { FilterManager } from "../filter/filterManager";
+import { HeightScaler } from "./heightScaler";
+/** Using the IoC has a slight performance consideration, which is no problem most of the
+ * time, unless we are trashing objects - which is the case when scrolling and rowComp
+ * and cellComp. So for performance reasons, RowComp and CellComp do not get autowired
+ * with the IoC. Instead they get passed this object which is all the beans the RowComp
+ * and CellComp need. Not autowiring all the cells gives performance improvement. */
 export declare class Beans {
     paginationProxy: PaginationProxy;
     gridPanel: GridPanel;
@@ -53,6 +63,10 @@ export declare class Beans {
     enterprise: boolean;
     componentResolver: ComponentResolver;
     taskQueue: AnimationFrameService;
+    dragAndDropService: DragAndDropService;
+    sortController: SortController;
+    filterManager: FilterManager;
+    heightScaler: HeightScaler;
     forPrint: boolean;
     doingMasterDetail: boolean;
     private postConstruct();

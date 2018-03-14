@@ -1,6 +1,6 @@
 import {RowNode} from "./rowNode";
 import {GridApi} from "../gridApi";
-import {ColumnApi} from "../columnController/columnController";
+import {ColumnApi} from "../columnController/columnApi";
 import {Column} from "./column";
 import {IViewportDatasource} from "../interfaces/iViewportDatasource";
 import {ICellRendererComp, ICellRendererFunc} from "../rendering/cellRenderers/iCellRenderer";
@@ -12,7 +12,7 @@ import {IEnterpriseDatasource} from "../interfaces/iEnterpriseDatasource";
 import {CsvExportParams, ProcessCellForExportParams} from "../exportParams";
 import {
     CellClickedEvent, CellContextMenuEvent, CellDoubleClickedEvent, CellEditingStartedEvent, CellEditingStoppedEvent,
-    CellFocusedEvent,
+    CellFocusedEvent, CellMouseDownEvent,
     CellMouseOutEvent,
     CellMouseOverEvent,
     CellValueChangedEvent,
@@ -48,6 +48,8 @@ export interface GridOptions {
      ****************************************************************/
 
     // set once in init, can never change
+    rowDragManaged?: boolean;
+    suppressRowDrag?: boolean;
     ensureDomOrder?: boolean;
     deltaRowDataMode?: boolean;
     scrollbarWidth?: number;
@@ -55,10 +57,16 @@ export interface GridOptions {
     toolPanelSuppressValues?: boolean;
     toolPanelSuppressPivots?: boolean;
     toolPanelSuppressPivotMode?: boolean;
+    toolPanelSuppressSideButtons?: boolean;
+    toolPanelSuppressColumnFilter?: boolean;
+    toolPanelSuppressColumnSelectAll?: boolean;
+    toolPanelSuppressColumnExpandAll?: boolean;
+    contractColumnSelection?: boolean;
     suppressRowClickSelection?: boolean;
     suppressCellSelection?: boolean;
     sortingOrder?: string[];
     suppressMultiSort?: boolean;
+    multiSortKey?: string;
     accentedSort?: boolean;
     suppressHorizontalScroll?: boolean;
     suppressTabbing?: boolean;
@@ -74,6 +82,8 @@ export interface GridOptions {
     enableStatusBar?: boolean;
     alwaysShowStatusBar?: boolean;
     enableGroupEdit?: boolean;
+    enterMovesDownAfterEdit?: boolean;
+    enterMovesDown?: boolean;
     suppressMiddleClickScrolls?: boolean;
     suppressPreventDefaultOnMouseWheel?: boolean;
     suppressScrollOnNewData?: boolean;
@@ -105,6 +115,7 @@ export interface GridOptions {
     pivotMode?: boolean;
     pivotTotals?: boolean;
     enableRangeSelection?: boolean;
+    suppressMultiRangeSelection?: boolean;
     // enterprise only
     rowGroupPanelShow?: string;
     pivotPanelShow?: string;
@@ -129,6 +140,7 @@ export interface GridOptions {
     aggregateOnlyChangedColumns?: boolean;
     valueCache?: boolean;
     valueCacheNeverExpires?: boolean;
+    batchUpdateWaitMillis?: number;
 
     cacheOverflowSize?: number;
     infiniteInitialRowCount?: number;
@@ -146,14 +158,16 @@ export interface GridOptions {
     //This is an array of ExcelStyle, but because that class lives on the enterprise project is referenced as any from the client project
     excelStyles?: any[];
     floatingFilter?: boolean;
-    suppressExcelExport?:boolean;
-    suppressCsvExport?:boolean;
+    suppressExcelExport?: boolean;
+    suppressCsvExport?: boolean;
 
     // these should really be deprecated, as the user should be using the default
     // column definitions for specifying column defaults.
     colWidth?: number;
     minColWidth?: number;
     maxColWidth?: number;
+
+    suppressPropertyNamesCheck?: boolean;
 
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. *
@@ -205,10 +219,13 @@ export interface GridOptions {
     alignedGrids?: GridOptions[];
     rowSelection?: string;
     rowDeselection?: boolean;
+    rowMultiSelectWithClick?: boolean;
+    isRowSelectable?: IsRowSelectable;
     overlayLoadingTemplate?: string;
     overlayNoRowsTemplate?: string;
     rowHeight?: number;
     detailRowHeight?: number;
+    popupParent?: HTMLElement;
 
     masterDetail?: boolean;
     isRowMaster?: IsRowMaster;
@@ -243,10 +260,10 @@ export interface GridOptions {
 
     // callbacks
     paginationNumberFormatter?: (params: PaginationNumberFormatterParams)=>string;
-    postProcessPopup?:(params: PostProcessPopupParams)=>void;
-    frameworkComponents?:{[p:string]:{new(): any}}
-    components?:{[p:string]:AgGridRegisteredComponentInput<IComponent<any>>}
-    dateComponent?:{new(): IDateComp};
+    postProcessPopup?: (params: PostProcessPopupParams)=>void;
+    frameworkComponents?: {[p: string]: {new(): any}};
+    components?: {[p: string]: AgGridRegisteredComponentInput<IComponent<any>>};
+    dateComponent?: {new(): IDateComp};
     dateComponentFramework?: any;
     groupRowRenderer?: {new(): ICellRendererComp} | ICellRendererFunc | string;
     groupRowRendererFramework?: any;
@@ -263,6 +280,7 @@ export interface GridOptions {
     navigateToNextCell?: (params: NavigateToNextCellParams)=>GridCellDef;
     tabToNextCell?: (params: TabToNextCellParams)=>GridCellDef;
     getDocument?: ()=> Document;
+    defaultGroupSortComparator?: (nodeA: RowNode, nodeB: RowNode) => number;
 
     loadingOverlayComponent?: {new(): ILoadingOverlayComp} | string;
     loadingOverlayComponentFramework?: any;
@@ -289,6 +307,7 @@ export interface GridOptions {
     processCellFromClipboard?(params: ProcessCellForExportParams): any;
     processSecondaryColDef?(colDef: ColDef): void;
     processSecondaryColGroupDef?(colGroupDef: ColGroupDef): void;
+    postSort?(nodes: RowNode[]): void;
 
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. *
@@ -319,6 +338,7 @@ export interface GridOptions {
     onColumnAggFuncChangeRequest?(event?: ColumnAggFuncChangeRequestEvent): void;
     onModelUpdated?(event?: ModelUpdatedEvent): void;
     onCellClicked?(event?: CellClickedEvent): void;
+    onCellMouseDown?(event?: CellMouseDownEvent): void;
     onCellDoubleClicked?(event?: CellDoubleClickedEvent): void;
     onCellContextMenu?(event?: CellContextMenuEvent): void;
     onCellValueChanged?(event?: CellValueChangedEvent): void;
@@ -370,6 +390,10 @@ export interface IsRowMaster {
     (dataItem: any): boolean;
 }
 
+export interface IsRowSelectable {
+    (node: RowNode): boolean;
+}
+
 export interface NodeChildDetails {
     group: boolean;
     children?: any[];
@@ -379,17 +403,17 @@ export interface NodeChildDetails {
 }
 
 export interface GetContextMenuItemsParams {
-    defaultItems: string[],
-    column: Column,
-    node: RowNode,
-    value: any,
-    api: GridApi,
-    columnApi: ColumnApi,
-    context: any
+    defaultItems: string[];
+    column: Column;
+    node: RowNode;
+    value: any;
+    api: GridApi;
+    columnApi: ColumnApi;
+    context: any;
 }
 
 export interface GetContextMenuItems {
-    (params: GetContextMenuItemsParams): (string|MenuItemDef)[]
+    (params: GetContextMenuItemsParams): (string|MenuItemDef)[];
 }
 
 export interface MenuItemDef {
@@ -405,31 +429,31 @@ export interface MenuItemDef {
 }
 
 export interface GetMainMenuItemsParams {
-    column: Column,
-    api: GridApi,
-    columnApi: ColumnApi,
-    context: any,
-    defaultItems: string[]
+    column: Column;
+    api: GridApi;
+    columnApi: ColumnApi;
+    context: any;
+    defaultItems: string[];
 }
 
 export interface GetMainMenuItems {
-    (params: GetMainMenuItemsParams): (string|MenuItemDef)[]
+    (params: GetMainMenuItemsParams): (string|MenuItemDef)[];
 }
 
 export interface GetRowNodeIdFunc {
-    (data: any): string
+    (data: any): string;
 }
 
 export interface ProcessRowParams {
     eRow: HTMLElement;
     ePinnedLeftRow: HTMLElement;
     ePinnedRightRow: HTMLElement;
-    rowIndex: number,
-    node: RowNode,
-    api: GridApi,
-    columnApi: ColumnApi,
-    addRenderedRowListener: (eventType: string, listener: Function)=>void,
-    context: any
+    rowIndex: number;
+    node: RowNode;
+    api: GridApi;
+    columnApi: ColumnApi;
+    addRenderedRowListener: (eventType: string, listener: Function)=>void;
+    context: any;
 }
 
 export interface NavigateToNextCellParams {
@@ -448,9 +472,9 @@ export interface TabToNextCellParams {
 
 export interface PostProcessPopupParams {
     // if popup is for a column, this gives the Column
-    column?: Column,
+    column?: Column;
     // if popup is for a row, this gives the RowNode
-    rowNode?: RowNode,
+    rowNode?: RowNode;
     // the popup we are showing
     ePopup: HTMLElement;
     // The different types are: 'contextMenu', 'columnMenu', 'aggFuncSelect', 'popupCellEditor'

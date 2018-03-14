@@ -16,7 +16,7 @@ import {RowNodeCache} from "../cache/rowNodeCache";
 import {RowNodeBlockLoader} from "../cache/rowNodeBlockLoader";
 import {RowDataTransaction} from "../inMemory/inMemoryRowModel";
 import {GridApi} from "../../gridApi";
-import {ColumnApi} from "../../columnController/columnController";
+import {ColumnApi} from "../../columnController/columnApi";
 
 @Bean('rowModel')
 export class InfiniteRowModel extends BeanStub implements IRowModel {
@@ -56,6 +56,14 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         this.addDestroyFunc( () => this.destroyCache() );
     }
 
+    @PreDestroy
+    private destroyDatasource(): void {
+        if (this.datasource && this.datasource.destroy) {
+            this.datasource.destroy();
+        }
+        this.datasource = null;
+    }
+
     public isLastRowFound(): boolean {
         return this.infiniteCache ? this.infiniteCache.isMaxRowFound() : false;
     }
@@ -63,6 +71,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     private addEventListeners(): void {
         this.addDestroyableEventListener(this.eventService, Events.EVENT_FILTER_CHANGED, this.onFilterChanged.bind(this));
         this.addDestroyableEventListener(this.eventService, Events.EVENT_SORT_CHANGED, this.onSortChanged.bind(this));
+        this.addDestroyableEventListener(this.eventService, Events.EVENT_COLUMN_EVERYTHING_CHANGED, this.onColumnEverything.bind(this));
     }
 
     private onFilterChanged(): void {
@@ -72,6 +81,13 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     }
 
     private onSortChanged(): void {
+        if (this.gridOptionsWrapper.isEnableServerSideSorting()) {
+            this.reset();
+        }
+    }
+
+    private onColumnEverything(): void {
+        // if the columns get reset, then this means the sort order could be impacted
         if (this.gridOptionsWrapper.isEnableServerSideSorting()) {
             this.reset();
         }
@@ -87,6 +103,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     }
 
     public setDatasource(datasource: IDatasource): void {
+        this.destroyDatasource();
         this.datasource = datasource;
 
         // only reset if we have a valid datasource to working with

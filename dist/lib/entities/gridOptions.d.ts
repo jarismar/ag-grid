@@ -1,9 +1,9 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./rowNode";
 import { GridApi } from "../gridApi";
-import { ColumnApi } from "../columnController/columnController";
+import { ColumnApi } from "../columnController/columnApi";
 import { Column } from "./column";
 import { IViewportDatasource } from "../interfaces/iViewportDatasource";
 import { ICellRendererComp, ICellRendererFunc } from "../rendering/cellRenderers/iCellRenderer";
@@ -13,7 +13,7 @@ import { GridCellDef } from "./gridCell";
 import { IDateComp } from "../rendering/dateComponent";
 import { IEnterpriseDatasource } from "../interfaces/iEnterpriseDatasource";
 import { CsvExportParams, ProcessCellForExportParams } from "../exportParams";
-import { CellClickedEvent, CellContextMenuEvent, CellDoubleClickedEvent, CellEditingStartedEvent, CellEditingStoppedEvent, CellFocusedEvent, CellMouseOutEvent, CellMouseOverEvent, CellValueChangedEvent, ColumnAggFuncChangeRequestEvent, ColumnEverythingChangedEvent, ColumnGroupOpenedEvent, ColumnMovedEvent, ColumnPinnedEvent, ColumnPivotChangedEvent, ColumnPivotChangeRequestEvent, ColumnPivotModeChangedEvent, ColumnResizedEvent, ColumnRowGroupChangedEvent, ColumnRowGroupChangeRequestEvent, ColumnValueChangedEvent, ColumnValueChangeRequestEvent, ColumnVisibleEvent, DisplayedColumnsChangedEvent, DragStartedEvent, DragStoppedEvent, FilterChangedEvent, FilterModifiedEvent, GridColumnsChangedEvent, GridReadyEvent, GridSizeChangedEvent, ModelUpdatedEvent, NewColumnsLoadedEvent, PaginationChangedEvent, PinnedRowDataChangedEvent, RangeSelectionChangedEvent, RowClickedEvent, RowDataChangedEvent, RowDoubleClickedEvent, RowEditingStartedEvent, RowEditingStoppedEvent, RowGroupOpenedEvent, RowSelectedEvent, RowValueChangedEvent, SelectionChangedEvent, SortChangedEvent, ViewportChangedEvent, VirtualColumnsChangedEvent, VirtualRowRemovedEvent } from "../events";
+import { CellClickedEvent, CellContextMenuEvent, CellDoubleClickedEvent, CellEditingStartedEvent, CellEditingStoppedEvent, CellFocusedEvent, CellMouseDownEvent, CellMouseOutEvent, CellMouseOverEvent, CellValueChangedEvent, ColumnAggFuncChangeRequestEvent, ColumnEverythingChangedEvent, ColumnGroupOpenedEvent, ColumnMovedEvent, ColumnPinnedEvent, ColumnPivotChangedEvent, ColumnPivotChangeRequestEvent, ColumnPivotModeChangedEvent, ColumnResizedEvent, ColumnRowGroupChangedEvent, ColumnRowGroupChangeRequestEvent, ColumnValueChangedEvent, ColumnValueChangeRequestEvent, ColumnVisibleEvent, DisplayedColumnsChangedEvent, DragStartedEvent, DragStoppedEvent, FilterChangedEvent, FilterModifiedEvent, GridColumnsChangedEvent, GridReadyEvent, GridSizeChangedEvent, ModelUpdatedEvent, NewColumnsLoadedEvent, PaginationChangedEvent, PinnedRowDataChangedEvent, RangeSelectionChangedEvent, RowClickedEvent, RowDataChangedEvent, RowDoubleClickedEvent, RowEditingStartedEvent, RowEditingStoppedEvent, RowGroupOpenedEvent, RowSelectedEvent, RowValueChangedEvent, SelectionChangedEvent, SortChangedEvent, ViewportChangedEvent, VirtualColumnsChangedEvent, VirtualRowRemovedEvent } from "../events";
 import { IComponent } from "../interfaces/iComponent";
 import { AgGridRegisteredComponentInput } from "../components/framework/componentProvider";
 import { ILoadingOverlayComp } from "../rendering/overlays/loadingOverlayComponent";
@@ -25,6 +25,8 @@ export interface GridOptions {
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. PLEASE!*
      ****************************************************************/
+    rowDragManaged?: boolean;
+    suppressRowDrag?: boolean;
     ensureDomOrder?: boolean;
     deltaRowDataMode?: boolean;
     scrollbarWidth?: number;
@@ -32,10 +34,16 @@ export interface GridOptions {
     toolPanelSuppressValues?: boolean;
     toolPanelSuppressPivots?: boolean;
     toolPanelSuppressPivotMode?: boolean;
+    toolPanelSuppressSideButtons?: boolean;
+    toolPanelSuppressColumnFilter?: boolean;
+    toolPanelSuppressColumnSelectAll?: boolean;
+    toolPanelSuppressColumnExpandAll?: boolean;
+    contractColumnSelection?: boolean;
     suppressRowClickSelection?: boolean;
     suppressCellSelection?: boolean;
     sortingOrder?: string[];
     suppressMultiSort?: boolean;
+    multiSortKey?: string;
     accentedSort?: boolean;
     suppressHorizontalScroll?: boolean;
     suppressTabbing?: boolean;
@@ -51,6 +59,8 @@ export interface GridOptions {
     enableStatusBar?: boolean;
     alwaysShowStatusBar?: boolean;
     enableGroupEdit?: boolean;
+    enterMovesDownAfterEdit?: boolean;
+    enterMovesDown?: boolean;
     suppressMiddleClickScrolls?: boolean;
     suppressPreventDefaultOnMouseWheel?: boolean;
     suppressScrollOnNewData?: boolean;
@@ -82,6 +92,7 @@ export interface GridOptions {
     pivotMode?: boolean;
     pivotTotals?: boolean;
     enableRangeSelection?: boolean;
+    suppressMultiRangeSelection?: boolean;
     rowGroupPanelShow?: string;
     pivotPanelShow?: string;
     suppressContextMenu?: boolean;
@@ -107,6 +118,7 @@ export interface GridOptions {
     aggregateOnlyChangedColumns?: boolean;
     valueCache?: boolean;
     valueCacheNeverExpires?: boolean;
+    batchUpdateWaitMillis?: number;
     cacheOverflowSize?: number;
     infiniteInitialRowCount?: number;
     paginationPageSize?: number;
@@ -126,6 +138,7 @@ export interface GridOptions {
     colWidth?: number;
     minColWidth?: number;
     maxColWidth?: number;
+    suppressPropertyNamesCheck?: boolean;
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. *
      ****************************************************************/
@@ -163,10 +176,13 @@ export interface GridOptions {
     alignedGrids?: GridOptions[];
     rowSelection?: string;
     rowDeselection?: boolean;
+    rowMultiSelectWithClick?: boolean;
+    isRowSelectable?: IsRowSelectable;
     overlayLoadingTemplate?: string;
     overlayNoRowsTemplate?: string;
     rowHeight?: number;
     detailRowHeight?: number;
+    popupParent?: HTMLElement;
     masterDetail?: boolean;
     isRowMaster?: IsRowMaster;
     detailCellRenderer?: {
@@ -231,6 +247,7 @@ export interface GridOptions {
     navigateToNextCell?: (params: NavigateToNextCellParams) => GridCellDef;
     tabToNextCell?: (params: TabToNextCellParams) => GridCellDef;
     getDocument?: () => Document;
+    defaultGroupSortComparator?: (nodeA: RowNode, nodeB: RowNode) => number;
     loadingOverlayComponent?: {
         new (): ILoadingOverlayComp;
     } | string;
@@ -260,6 +277,7 @@ export interface GridOptions {
     processCellFromClipboard?(params: ProcessCellForExportParams): any;
     processSecondaryColDef?(colDef: ColDef): void;
     processSecondaryColGroupDef?(colGroupDef: ColGroupDef): void;
+    postSort?(nodes: RowNode[]): void;
     /****************************************************************
      * Don't forget to update ComponentUtil if changing this class. *
      ****************************************************************/
@@ -287,6 +305,7 @@ export interface GridOptions {
     onColumnAggFuncChangeRequest?(event?: ColumnAggFuncChangeRequestEvent): void;
     onModelUpdated?(event?: ModelUpdatedEvent): void;
     onCellClicked?(event?: CellClickedEvent): void;
+    onCellMouseDown?(event?: CellMouseDownEvent): void;
     onCellDoubleClicked?(event?: CellDoubleClickedEvent): void;
     onCellContextMenu?(event?: CellContextMenuEvent): void;
     onCellValueChanged?(event?: CellValueChangedEvent): void;
@@ -326,6 +345,9 @@ export interface GetNodeChildDetails {
 }
 export interface IsRowMaster {
     (dataItem: any): boolean;
+}
+export interface IsRowSelectable {
+    (node: RowNode): boolean;
 }
 export interface NodeChildDetails {
     group: boolean;

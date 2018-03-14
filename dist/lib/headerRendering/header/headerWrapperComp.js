@@ -1,6 +1,6 @@
 /**
  * ag-grid - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v15.0.0
+ * @version v17.0.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -30,8 +30,9 @@ var context_1 = require("../../context/context");
 var column_1 = require("../../entities/column");
 var utils_1 = require("../../utils");
 var dragAndDropService_1 = require("../../dragAndDrop/dragAndDropService");
+var columnApi_1 = require("../../columnController/columnApi");
 var columnController_1 = require("../../columnController/columnController");
-var horizontalDragService_1 = require("../horizontalDragService");
+var horizontalResizeService_1 = require("../horizontalResizeService");
 var gridOptionsWrapper_1 = require("../../gridOptionsWrapper");
 var cssClassApplier_1 = require("../cssClassApplier");
 var setLeftFeature_1 = require("../../rendering/features/setLeftFeature");
@@ -45,12 +46,12 @@ var selectAllFeature_1 = require("./selectAllFeature");
 var events_1 = require("../../events");
 var columnHoverService_1 = require("../../rendering/columnHoverService");
 var beans_1 = require("../../rendering/beans");
+var hoverFeature_1 = require("../hoverFeature");
 var HeaderWrapperComp = (function (_super) {
     __extends(HeaderWrapperComp, _super);
-    function HeaderWrapperComp(column, eRoot, dragSourceDropTarget, pinned) {
+    function HeaderWrapperComp(column, dragSourceDropTarget, pinned) {
         var _this = _super.call(this, HeaderWrapperComp.TEMPLATE) || this;
         _this.column = column;
-        _this.eRoot = eRoot;
         _this.dragSourceDropTarget = dragSourceDropTarget;
         _this.pinned = pinned;
         return _this;
@@ -71,6 +72,7 @@ var HeaderWrapperComp = (function (_super) {
         this.setupMenuClass();
         this.setupSortableClass(enableSorting);
         this.addColumnHoverListener();
+        this.addFeature(this.context, new hoverFeature_1.HoverFeature([this.column], this.getGui()));
         this.addDestroyableEventListener(this.column, column_1.Column.EVENT_FILTER_ACTIVE_CHANGED, this.onFilterChanged.bind(this));
         this.onFilterChanged();
         this.addFeature(this.context, new selectAllFeature_1.SelectAllFeature(this.cbSelectAll, this.column));
@@ -109,10 +111,10 @@ var HeaderWrapperComp = (function (_super) {
                 _this.gridApi.showColumnMenuAfterButtonClick(_this.column, source);
             },
             progressSort: function (multiSort) {
-                _this.sortController.progressSort(_this.column, !!multiSort);
+                _this.sortController.progressSort(_this.column, !!multiSort, "uiColumnSorted");
             },
             setSort: function (sort, multiSort) {
-                _this.sortController.setSortForColumn(_this.column, sort, !!multiSort);
+                _this.sortController.setSortForColumn(_this.column, sort, !!multiSort, "uiColumnSorted");
             },
             api: this.gridApi,
             columnApi: this.columnApi,
@@ -143,6 +145,7 @@ var HeaderWrapperComp = (function (_super) {
         var _this = this;
         var suppressMove = this.gridOptionsWrapper.isSuppressMovableColumns()
             || this.column.getColDef().suppressMovable
+            || this.column.isLockPosition()
             || this.gridOptionsWrapper.isForPrint();
         if (suppressMove) {
             return;
@@ -153,7 +156,9 @@ var HeaderWrapperComp = (function (_super) {
                 eElement: eHeaderCellLabel,
                 dragItemCallback: function () { return _this.createDragItem(); },
                 dragItemName: displayName,
-                dragSourceDropTarget: this.dragSourceDropTarget
+                dragSourceDropTarget: this.dragSourceDropTarget,
+                dragStarted: function () { return _this.column.setMoving(true, "uiColumnMoved"); },
+                dragStopped: function () { return _this.column.setMoving(false, "uiColumnMoved"); }
             };
             this.dragAndDropService.addDragSource(dragSource_1, true);
             this.addDestroyFunc(function () { return _this.dragAndDropService.removeDragSource(dragSource_1); });
@@ -178,27 +183,26 @@ var HeaderWrapperComp = (function (_super) {
             utils_1.Utils.removeFromParent(this.eResize);
             return;
         }
-        this.horizontalDragService.addDragHandling({
-            eDraggableElement: this.eResize,
-            eBody: this.eRoot,
-            cursor: 'col-resize',
-            startAfterPixels: 0,
-            onDragStart: this.onDragStart.bind(this),
-            onDragging: this.onDragging.bind(this)
+        var finishedWithResizeFunc = this.horizontalResizeService.addResizeBar({
+            eResizeBar: this.eResize,
+            onResizeStart: this.onResizeStart.bind(this),
+            onResizing: this.onResizing.bind(this, false),
+            onResizeEnd: this.onResizing.bind(this, true)
         });
+        this.addDestroyFunc(finishedWithResizeFunc);
         var weWantAutoSize = !this.gridOptionsWrapper.isSuppressAutoSize() && !colDef.suppressAutoSize;
         if (weWantAutoSize) {
             this.addDestroyableEventListener(this.eResize, 'dblclick', function () {
-                _this.columnController.autoSizeColumn(_this.column);
+                _this.columnController.autoSizeColumn(_this.column, "uiColumnResized");
             });
         }
     };
-    HeaderWrapperComp.prototype.onDragging = function (dragChange, finished) {
-        var dragChangeNormalised = this.normaliseDragChange(dragChange);
-        var newWidth = this.startWidth + dragChangeNormalised;
-        this.columnController.setColumnWidth(this.column, newWidth, finished);
+    HeaderWrapperComp.prototype.onResizing = function (finished, resizeAmount) {
+        var resizeAmountNormalised = this.normaliseResizeAmount(resizeAmount);
+        var newWidth = this.startWidth + resizeAmountNormalised;
+        this.columnController.setColumnWidth(this.column, newWidth, finished, "uiColumnDragged");
     };
-    HeaderWrapperComp.prototype.onDragStart = function () {
+    HeaderWrapperComp.prototype.onResizeStart = function () {
         this.startWidth = this.column.getActualWidth();
     };
     HeaderWrapperComp.prototype.setupTooltip = function () {
@@ -231,7 +235,7 @@ var HeaderWrapperComp = (function (_super) {
     };
     // optionally inverts the drag, depending on pinned and RTL
     // note - this method is duplicated in RenderedHeaderGroupCell - should refactor out?
-    HeaderWrapperComp.prototype.normaliseDragChange = function (dragChange) {
+    HeaderWrapperComp.prototype.normaliseResizeAmount = function (dragChange) {
         var result = dragChange;
         if (this.gridOptionsWrapper.isEnableRtl()) {
             // for RTL, dragging left makes the col bigger, except when pinning left
@@ -265,9 +269,9 @@ var HeaderWrapperComp = (function (_super) {
         __metadata("design:type", columnController_1.ColumnController)
     ], HeaderWrapperComp.prototype, "columnController", void 0);
     __decorate([
-        context_1.Autowired('horizontalDragService'),
-        __metadata("design:type", horizontalDragService_1.HorizontalDragService)
-    ], HeaderWrapperComp.prototype, "horizontalDragService", void 0);
+        context_1.Autowired('horizontalResizeService'),
+        __metadata("design:type", horizontalResizeService_1.HorizontalResizeService)
+    ], HeaderWrapperComp.prototype, "horizontalResizeService", void 0);
     __decorate([
         context_1.Autowired('context'),
         __metadata("design:type", context_1.Context)
@@ -282,7 +286,7 @@ var HeaderWrapperComp = (function (_super) {
     ], HeaderWrapperComp.prototype, "gridApi", void 0);
     __decorate([
         context_1.Autowired('columnApi'),
-        __metadata("design:type", columnController_1.ColumnApi)
+        __metadata("design:type", columnApi_1.ColumnApi)
     ], HeaderWrapperComp.prototype, "columnApi", void 0);
     __decorate([
         context_1.Autowired('sortController'),

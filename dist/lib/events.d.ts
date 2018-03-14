@@ -1,11 +1,11 @@
-// Type definitions for ag-grid v15.0.0
+// Type definitions for ag-grid v17.0.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "./entities/rowNode";
 import { Column } from "./entities/column";
 import { ColDef } from "./entities/colDef";
 import { GridApi } from "./gridApi";
-import { ColumnApi } from "./columnController/columnController";
+import { ColumnApi } from "./columnController/columnApi";
 import { OriginalColumnGroup } from "./entities/originalColumnGroup";
 export { Events } from './eventKeys';
 export interface ModelUpdatedEvent extends AgGridEvent {
@@ -28,11 +28,14 @@ export interface AgGridEvent extends AgEvent {
     api: GridApi;
     columnApi: ColumnApi;
 }
+export interface ToolPanelVisibleChanged extends AgGridEvent {
+}
 export interface ColumnPivotModeChangedEvent extends AgGridEvent {
 }
 export interface VirtualColumnsChangedEvent extends AgGridEvent {
 }
 export interface ColumnEverythingChangedEvent extends AgGridEvent {
+    source: string;
 }
 export interface NewColumnsLoadedEvent extends AgGridEvent {
 }
@@ -60,10 +63,6 @@ export interface SortChangedEvent extends AgGridEvent {
 }
 export interface GridReadyEvent extends AgGridEvent {
 }
-export interface DragStartedEvent extends AgGridEvent {
-}
-export interface DragStoppedEvent extends AgGridEvent {
-}
 export interface DisplayedColumnsWidthChangedEvent extends AgGridEvent {
 }
 export interface ColumnHoverChangedEvent extends AgGridEvent {
@@ -71,6 +70,29 @@ export interface ColumnHoverChangedEvent extends AgGridEvent {
 export interface BodyHeightChangedEvent extends AgGridEvent {
 }
 export interface ComponentStateChangedEvent extends AgGridEvent {
+}
+export interface DragEvent extends AgGridEvent {
+    type: string;
+}
+export interface DragStartedEvent extends DragEvent {
+}
+export interface DragStoppedEvent extends DragEvent {
+}
+export interface RowDragEvent extends AgGridEvent {
+    node: RowNode;
+    y: number;
+    vDirection: string;
+    event: MouseEvent;
+    overIndex: number;
+    overNode: RowNode;
+}
+export interface RowDragEnterEvent extends RowDragEvent {
+}
+export interface RowDragEndEvent extends RowDragEvent {
+}
+export interface RowDragMoveEvent extends RowDragEvent {
+}
+export interface RowDragLeaveEvent extends RowDragEvent {
 }
 export interface GridSizeChangedEvent extends AgGridEvent {
     clientWidth: number;
@@ -114,9 +136,11 @@ export interface CellFocusedEvent extends AgGridEvent {
 /**---------------*/
 /** COLUMN EVENTS */
 /**---------------*/
+export declare type ColumnEventType = "sizeColumnsToFit" | "autosizeColumns" | "alignedGridChanged" | "filterChanged" | "filterDestroyed" | "gridOptionsChanged" | "gridInitializing" | "toolPanelDragAndDrop" | "toolPanelUi" | "uiColumnMoved" | "uiColumnResized" | "uiColumnDragged" | "uiColumnExpanded" | "uiColumnSorted" | "contextMenu" | "columnMenu" | "rowModelUpdated" | "api";
 export interface ColumnEvent extends AgGridEvent {
     column: Column;
     columns: Column[];
+    source: ColumnEventType;
 }
 export interface ColumnResizedEvent extends ColumnEvent {
     finished: boolean;
@@ -172,6 +196,8 @@ export interface CellEvent extends RowEvent {
     value: any;
 }
 export interface CellClickedEvent extends CellEvent {
+}
+export interface CellMouseDownEvent extends CellEvent {
 }
 export interface CellDoubleClickedEvent extends CellEvent {
 }
